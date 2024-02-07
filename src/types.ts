@@ -5,6 +5,15 @@ interface UserInfo {
   iv: string,
 }
 
+interface VaultInfo {
+  [key: string]: {
+    userId: string,
+    password: string,
+    sharedWith: string[],
+  }
+}
+
 export type {
-  UserInfo
+  UserInfo,
+  VaultInfo,
 }

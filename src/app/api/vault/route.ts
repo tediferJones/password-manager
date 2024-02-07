@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const userInfo = await turso.execute(`SELECT * FROM users WHERE username = '${user.username}'`)
   // const userInfo = await turso.execute(`SELECT * FROM users`)
 
-  return NextResponse.json(toObject(userInfo)[0] || {})
+  return NextResponse.json(toObject(userInfo)[0] || { username: user.username })
 }
 
 export async function POST(req: Request) {
