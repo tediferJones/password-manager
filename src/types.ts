@@ -1,4 +1,5 @@
 interface UserInfo {
+  [key: string]: any,
   username: string,
   vault: string,
   salt: string,

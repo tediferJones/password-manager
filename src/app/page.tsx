@@ -5,10 +5,10 @@
 import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { encrypt, decrypt, getFullKey } from '@/modules/security';
-import { UserInfo } from '@/types';
-import { Button } from '@/components/ui/button';
+import { UserInfo, VaultInfo } from '@/types';
 import { ToggleTheme } from '@/components/toggleTheme';
 import GetPassword from '@/components/getPassword';
+import AddEntry from '@/components/addEntry';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -25,14 +25,12 @@ import GetPassword from '@/components/getPassword';
 //
 // What to do next:
 // Start building ui
-//  - Add some way to create new entries
 // Edit modules/security, all functions should take salt and iv as base64 strings
-// Update state var names
-// Update UserInfo type, on the client-side vault, salt, and iv are technically optional
-//  - If we can assign salt and iv in this component, then the only optional attr would be vault, 
-//    and we could just manually set that to an empty string for new users
-// If possible try to set salt and iv for new users in the useEffect function below,
-//  - This way the original loading of salt and iv are all done in the same place
+//  - see if we can use base64 everywhere, especially for the plaintext and password
+// Salt and IV are always recycled, fix this, see notes above
+// Add an extra conditional to the render chain that checks for a vault, else displays an error message
+// Need to setup some kind of ORM
+//  - we are currently trusting user inputs, this is a very bad idea
 //
 // Extras:
 //  - delete components/Test.tsx
@@ -52,95 +50,118 @@ import GetPassword from '@/components/getPassword';
 //        - ANSWER: We can detect if decryption fails because it will try to throw an error
 //    If there is no existing vault, this should display a dialog to create/confirm a new password
 export default function Home() {
-  // You should probably rename this to userInfo
-  // We will need a seperate state var to hold the unecrypted vault contents
-  // Consider also rename UserInfo.vault to UserInfo.EncryptedVault
-  //
-  // Also these declarations can be simplified like so:
-  // const [state, setState] = useState<CustomType>();
-  //  - Then the state var will have type undefined | CustomType
-  const [vault, setVault] = useState<null | UserInfo>(null)
-  const [fullKey, setFullKey] = useState<null | CryptoKey>(null)
+  const [userInfo, setUserInfo] = useState<UserInfo>();
+  const [fullKey, setFullKey] = useState<CryptoKey>();
+  const [vaultData, setVaultData] = useState<VaultInfo>({});
 
   useEffect(() => {
     (async () => {
       const res = await fetch('/api/vault');
-      // const { salt, iv, vault }: UserInfo = await res.json()
-      // console.log({ salt, iv, vault })
       const userInfo: UserInfo = await res.json();
       console.log(userInfo)
-      if (!userInfo.vault) {
-        console.log('no vault found')
-        return setVault(userInfo)
-        // return setVault({
-        //   username: userInfo.username,
-        //   vault: '',
-        //   iv: '',
-        //   salt: '',
-        // })
-      }
-      // Get password from user and decrypt vault
-      // THIS IS ENTIRELY EXPERIMENTAL, no idea if it actually works
-      // const password = window.prompt('Please input your password')
-      // if (password) {
-      //   return setVault(JSON.parse(
-      //     await decrypt(
-      //       vault,
-      //       await getFullKey('string', Buffer.from(salt, 'base64')),
-      //       Buffer.from(iv, 'base64')
-      //     )
-      //   ))
-      // }
+
+      return setUserInfo({
+        username: userInfo.username,
+        vault: userInfo.vault || '',
+        iv: userInfo.iv || crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
+        salt: userInfo.salt || crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
+      })
     })()
   }, [])
 
-  const data = JSON.stringify({
-    'amazon': {
-      user: 'test@email.com',
-      pwd: 'password123',
-    },
-    'github': {
-      userId: 'test@email.com',
-      pwd: 'fakePassword123',
-    }
-  });
-  const password = 'testPassword';
-  // @ts-ignore
-  const salt = new Uint8Array([...Array(32).keys()])
-  // @ts-ignore
-  const iv = new Uint8Array([...Array(12).keys()])
+  useEffect(() => {
+    (async () => {
+      console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
+      if (vaultData && fullKey && userInfo) {
+        console.log('UPDATING DATA')
+        console.log(userInfo)
+        const encVault = await encrypt(JSON.stringify(vaultData), fullKey, userInfo.iv)
+        fetch('/api/vault', {
+          method: 'POST',
+          headers:  {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...userInfo,
+            vault: encVault,
+          }),
+        });
+      }
+    })();
+  }, [vaultData])
 
-  getFullKey(password, salt).then(fullKey => {
-    encrypt(data, fullKey, iv).then(encrypted => {
-      console.log('encrypted data', encrypted)
-      decrypt(encrypted, fullKey, iv).then(decrypted => {
-        console.log('decrypted data', decrypted)
-      })
-      // getFullKey('wrongPassword', salt).then(fullKey => {
-      //   decrypt(encrypted, fullKey, iv).then(decrypted => {
-      //     console.log('wrong password', decrypted)
-      //   }).catch(err => console.log('DECRYPTION FAILED'))
-      // })
-    })
-  })
+  // const data = JSON.stringify({
+  //   'amazon': {
+  //     user: 'test@email.com',
+  //     pwd: 'password123',
+  //   },
+  //   'github': {
+  //     userId: 'test@email.com',
+  //     pwd: 'fakePassword123',
+  //   }
+  // });
+  // const password = 'testPassword';
+
+  // // THIS WILL GENERATE A RANDOM SALT AND IV
+  // // const randomSalt = crypto.getRandomValues(Buffer.alloc(32)).toString('base64')
+  // // const randomIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64')
+  // // console.log('Random salt and iv', randomSalt, randomIv)
+  // // console.log(randomSalt)
+  // // console.log(randomIv)
+  // // These are just test values created using the above functions
+  // const testSalt = '86nkYRRBJXHeUv1gp7R3k/E6/MAz7hTsNQNb/CnIDc8=';
+  // const testIv = 'lVui9aPQM+AWtCzo';
+
+  // getFullKey(password, testSalt).then(fullKey => {
+  //   encrypt(data, fullKey, testIv).then(encrypted => {
+  //     console.log('encrypted data', encrypted)
+  //     decrypt(encrypted, fullKey, testIv).then(decrypted => {
+  //       console.log('decrypted data', decrypted)
+  //     })
+  //     // getFullKey('wrongPassword', testSalt).then(fullKey => {
+  //     //   decrypt(encrypted, fullKey, testIv).then(decrypted => {
+  //     //     console.log('wrong password', decrypted)
+  //     //   }).catch(err => console.log('DECRYPTION FAILED'))
+  //     // })
+  //   })
+  // })
+
+  // WORKING
+  // // @ts-ignore
+  // const salt = new Uint8Array([...Array(32).keys()])
+  // // @ts-ignore
+  // const iv = new Uint8Array([...Array(12).keys()])
+  // getFullKey(password, salt).then(fullKey => {
+  //   encrypt(data, fullKey, iv).then(encrypted => {
+  //     console.log('encrypted data', encrypted)
+  //     decrypt(encrypted, fullKey, iv).then(decrypted => {
+  //       console.log('decrypted data', decrypted)
+  //     })
+  //     // getFullKey('wrongPassword', salt).then(fullKey => {
+  //     //   decrypt(encrypted, fullKey, iv).then(decrypted => {
+  //     //     console.log('wrong password', decrypted)
+  //     //   }).catch(err => console.log('DECRYPTION FAILED'))
+  //     // })
+  //   })
+  // })
 
   return (
     <div>
       <div className='p-8 flex justify-between items-center'>
         <h1 className='text-4xl font-bold'>Password Manager</h1>
         <div className='flex items-center gap-4'>
-          {vault && vault.username ? <h1 className='text-xl'>{vault.username}</h1> : []}
+          {userInfo && userInfo.username ? <h1 className='text-xl'>{userInfo.username}</h1> : []}
           <UserButton />
           <ToggleTheme />
         </div>
       </div>
-      {vault === null ? <h1>LOADING...</h1> : 
-        fullKey === null ? <GetPassword fullKey={fullKey} setFullKey={setFullKey} vault={vault} setVault={setVault} /> :
+      {!userInfo ? <h1>LOADING...</h1> : 
+        !fullKey ? <GetPassword match={!userInfo.vault} setFullKey={setFullKey} userInfo={userInfo} setVault={setVaultData}/> :
           <div>
-            <h1>This is where the passwords go</h1>
+            <AddEntry vaultData={vaultData} setVaultData={setVaultData} />
+            <div>{JSON.stringify(vaultData)}</div>
           </div>
       }
-      <Button>Upload</Button>
     </div>
   );
 }

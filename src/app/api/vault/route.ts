@@ -9,7 +9,6 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json('Unauthorized', { status: 401 })
 
   const userInfo = await turso.execute(`SELECT * FROM users WHERE username = '${user.username}'`)
-  // const userInfo = await turso.execute(`SELECT * FROM users`)
 
   return NextResponse.json(toObject(userInfo)[0] || { username: user.username })
 }
@@ -22,12 +21,13 @@ export async function POST(req: Request) {
   if (!salt || !iv || !vault) return NextResponse.json('Incomplete user info', { status: 400 })
 
   const result = await turso.execute(`SELECT * FROM users WHERE username = '${user.username}';`)
+  console.log('FROM SERVER', salt, iv, vault, user.username)
   if (result.rows.length) {
     // UPDATE EXISTING RECORD
-    console.log('UPDATE RECORD')
-    // await turso.execute(
-    //   'UPDATE users SET (salt, iv, vault) WHERE '
-    // )
+    // console.log('UPDATE RECORD')
+    await turso.execute(
+      `UPDATE users SET salt = '${salt}', iv = '${iv}', vault = '${vault}' WHERE username = '${user.username}'`
+    )
   } else {
     // CREATE NEW RECORD
     await turso.execute(
@@ -35,4 +35,5 @@ export async function POST(req: Request) {
         `VALUES ('${user.username}', '${salt}', '${iv}', '${vault}')`
     )
   }
+  return new NextResponse
 }
