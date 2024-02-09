@@ -9,6 +9,16 @@ import { UserInfo, VaultInfo } from '@/types';
 import { ToggleTheme } from '@/components/toggleTheme';
 import GetPassword from '@/components/getPassword';
 import AddEntry from '@/components/addEntry';
+import MyTable from '@/components/table/myTable';
+import { columns } from '@/components/table/columns';
+
+// import {
+//   Accordion,
+//   AccordionContent,
+//   AccordionItem,
+//   AccordionTrigger,
+// } from "@/components/ui/accordion"
+// import { Button } from '@/components/ui/button';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -28,13 +38,16 @@ import AddEntry from '@/components/addEntry';
 // Edit modules/security, all functions should take salt and iv as base64 strings
 //  - see if we can use base64 everywhere, especially for the plaintext and password
 // Salt and IV are always recycled, fix this, see notes above
+//  - IV is now changed everytime vault is updated
+//  - Make sure salt is unique in api when new vault is created
 // Add an extra conditional to the render chain that checks for a vault, else displays an error message
-// Need to setup some kind of ORM
-//  - we are currently trusting user inputs, this is a very bad idea
+// [ DONE ] Need to setup some kind of ORM
+//  - [ DONE ] we are currently trusting user inputs, this is a very bad idea
 //
 // Extras:
 //  - delete components/Test.tsx
 //  - delete components/ui/dropdown-menu
+//  - delete components/ui/accordion and uninstall radix-ui/react-accordion
 //  - move contents of src/modules to src/lib, src/lib is required by shadcn-ui
 //    - Or go to components.json file and change the alias for utils
 //
@@ -49,6 +62,7 @@ import AddEntry from '@/components/addEntry';
 //      - What happens if user inputs wrong password?
 //        - ANSWER: We can detect if decryption fails because it will try to throw an error
 //    If there is no existing vault, this should display a dialog to create/confirm a new password
+
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
@@ -66,8 +80,8 @@ export default function Home() {
         iv: userInfo.iv || crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
         salt: userInfo.salt || crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
       })
-    })()
-  }, [])
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -75,7 +89,9 @@ export default function Home() {
       if (vaultData && fullKey && userInfo) {
         console.log('UPDATING DATA')
         console.log(userInfo)
-        const encVault = await encrypt(JSON.stringify(vaultData), fullKey, userInfo.iv)
+        const newIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64');
+        // const encVault = await encrypt(JSON.stringify(vaultData), fullKey, userInfo.iv)
+        const encVault = await encrypt(JSON.stringify(vaultData), fullKey, newIv)
         fetch('/api/vault', {
           method: 'POST',
           headers:  {
@@ -83,12 +99,13 @@ export default function Home() {
           },
           body: JSON.stringify({
             ...userInfo,
+            iv: newIv,
             vault: encVault,
           }),
         });
       }
     })();
-  }, [vaultData])
+  }, [vaultData]);
 
   // const data = JSON.stringify({
   //   'amazon': {
@@ -126,28 +143,9 @@ export default function Home() {
   //   })
   // })
 
-  // WORKING
-  // // @ts-ignore
-  // const salt = new Uint8Array([...Array(32).keys()])
-  // // @ts-ignore
-  // const iv = new Uint8Array([...Array(12).keys()])
-  // getFullKey(password, salt).then(fullKey => {
-  //   encrypt(data, fullKey, iv).then(encrypted => {
-  //     console.log('encrypted data', encrypted)
-  //     decrypt(encrypted, fullKey, iv).then(decrypted => {
-  //       console.log('decrypted data', decrypted)
-  //     })
-  //     // getFullKey('wrongPassword', salt).then(fullKey => {
-  //     //   decrypt(encrypted, fullKey, iv).then(decrypted => {
-  //     //     console.log('wrong password', decrypted)
-  //     //   }).catch(err => console.log('DECRYPTION FAILED'))
-  //     // })
-  //   })
-  // })
-
   return (
     <div>
-      <div className='p-8 flex justify-between items-center'>
+      <div className='p-8 flex justify-between items-center flex-col sm:flex-row'>
         <h1 className='text-4xl font-bold'>Password Manager</h1>
         <div className='flex items-center gap-4'>
           {userInfo && userInfo.username ? <h1 className='text-xl'>{userInfo.username}</h1> : []}
@@ -157,9 +155,51 @@ export default function Home() {
       </div>
       {!userInfo ? <h1>LOADING...</h1> : 
         !fullKey ? <GetPassword match={!userInfo.vault} setFullKey={setFullKey} userInfo={userInfo} setVault={setVaultData}/> :
-          <div>
+          <div className='md:w-4/5 mx-auto'>
             <AddEntry vaultData={vaultData} setVaultData={setVaultData} />
-            <div>{JSON.stringify(vaultData)}</div>
+            <MyTable columns={columns} 
+              data={Object.keys(vaultData).map(key => ({ ...vaultData[key], service: key, }))} 
+            />
+
+            {/*
+            <div className='flex justify-center'>
+              <Accordion type="multiple" className="w-4/5">
+                {Object.keys(vaultData).map((key, i) => {
+                  return <AccordionItem key={`accordion-${i}`} value={`entry-${i}`}>
+                    <AccordionTrigger>
+                      <div className='overflow-hidden'>{key}</div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      Yes. It adheres to the WAI-ARIA design pattern.
+                    </AccordionContent>
+                  </AccordionItem>
+                })}
+                <AccordionItem value="item-1">
+                  <AccordionTrigger>Is it accessible?</AccordionTrigger>
+                  <AccordionContent>
+                    Yes. It adheres to the WAI-ARIA design pattern.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-2">
+                  <AccordionTrigger>Is it styled?</AccordionTrigger>
+                  <AccordionContent>
+                    Yes. It comes with default styles that matches the other
+                    components&apos; aesthetic.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-3">
+                  <AccordionTrigger>Is it animated?</AccordionTrigger>
+                  <AccordionContent>
+                    Yes. It&apos;s animated by default, but you can disable it if you
+                    prefer.
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+            </div>
+
+            */}
+
           </div>
       }
     </div>

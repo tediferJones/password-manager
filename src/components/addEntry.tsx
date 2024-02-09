@@ -35,6 +35,7 @@ export default function AddEntry({ vaultData, setVaultData }: { vaultData: Vault
               className='col-span-3'
               placeholder='amazon.com'
               required
+              maxLength={64}
             />
           </div>
           <div className='grid grid-cols-4 items-center gap-4'>
@@ -46,6 +47,7 @@ export default function AddEntry({ vaultData, setVaultData }: { vaultData: Vault
               className='col-span-3'
               placeholder='Email or Username'
               required
+              maxLength={64}
             />
           </div>
           <div className='grid grid-cols-4 items-center gap-4'>
@@ -57,6 +59,7 @@ export default function AddEntry({ vaultData, setVaultData }: { vaultData: Vault
               placeholder='myPassword123'
               className='col-span-3'
               required
+              maxLength={64}
             />
           </div>
           <PopoverClose asChild>
