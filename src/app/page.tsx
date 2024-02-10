@@ -11,6 +11,8 @@ import GetPassword from '@/components/getPassword';
 import AddEntry from '@/components/addEntry';
 import MyTable from '@/components/table/myTable';
 import { columns } from '@/components/table/columns';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 // import {
 //   Accordion,
@@ -43,6 +45,12 @@ import { columns } from '@/components/table/columns';
 // Add an extra conditional to the render chain that checks for a vault, else displays an error message
 // [ DONE ] Need to setup some kind of ORM
 //  - [ DONE ] we are currently trusting user inputs, this is a very bad idea
+// Search bar only searches by userId, create a checkbox dropdown like the columns selector to choose what columns we're searching in
+// It would be nice we indicated which columns are being sorted, also the X should only appear if it is being sorted
+// Add a settings menu, should have these options:
+//  - Change passwordd
+//  - Export existing entries
+//  - Import new entries
 //
 // Extras:
 //  - delete components/Test.tsx
@@ -153,12 +161,17 @@ export default function Home() {
           <ToggleTheme />
         </div>
       </div>
-      {!userInfo ? <h1>LOADING...</h1> : 
+      {// !userInfo ? <h1>LOADING...</h1> : 
+        !userInfo ? 
+          <Button disabled className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Please wait
+          </Button> :
         !fullKey ? <GetPassword match={!userInfo.vault} setFullKey={setFullKey} userInfo={userInfo} setVault={setVaultData}/> :
-          <div className='md:w-4/5 mx-auto'>
+          <div className='w-11/12 md:w-4/5 mx-auto pb-12'>
             <AddEntry vaultData={vaultData} setVaultData={setVaultData} />
             <MyTable columns={columns} 
-              data={Object.keys(vaultData).map(key => ({ ...vaultData[key], service: key, }))} 
+              data={Object.keys(vaultData).map(key => ({ ...vaultData[key], service: key, })).toReversed()} // To reversed so its in order from most recent
             />
 
             {/*
