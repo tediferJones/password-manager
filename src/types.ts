@@ -14,7 +14,14 @@ interface VaultInfo {
   }
 }
 
+interface TableColumns {
+  service: string,
+  userId: string,
+  password: string,
+}
+
 export type {
   UserInfo,
   VaultInfo,
+  TableColumns,
 }

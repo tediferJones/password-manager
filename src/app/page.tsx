@@ -4,23 +4,14 @@
 // import Image from 'next/image';
 import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
-import { encrypt, decrypt, getFullKey } from '@/modules/security';
-import { UserInfo, VaultInfo } from '@/types';
+import { encrypt } from '@/lib/security';
+import { TableColumns, UserInfo, VaultInfo } from '@/types';
 import { ToggleTheme } from '@/components/toggleTheme';
 import GetPassword from '@/components/getPassword';
-import AddEntry from '@/components/addEntry';
 import MyTable from '@/components/table/myTable';
 import { columns } from '@/components/table/columns';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-
-// import {
-//   Accordion,
-//   AccordionContent,
-//   AccordionItem,
-//   AccordionTrigger,
-// } from "@/components/ui/accordion"
-// import { Button } from '@/components/ui/button';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -43,33 +34,13 @@ import { Loader2 } from 'lucide-react';
 //  - IV is now changed everytime vault is updated
 //  - Make sure salt is unique in api when new vault is created
 // Add an extra conditional to the render chain that checks for a vault, else displays an error message
-// [ DONE ] Need to setup some kind of ORM
-//  - [ DONE ] we are currently trusting user inputs, this is a very bad idea
 // Search bar only searches by userId, create a checkbox dropdown like the columns selector to choose what columns we're searching in
 // It would be nice we indicated which columns are being sorted, also the X should only appear if it is being sorted
+// Implement input validation module from chat-bun
 // Add a settings menu, should have these options:
-//  - Change passwordd
+//  - Change password
 //  - Export existing entries
 //  - Import new entries
-//
-// Extras:
-//  - delete components/Test.tsx
-//  - delete components/ui/dropdown-menu
-//  - delete components/ui/accordion and uninstall radix-ui/react-accordion
-//  - move contents of src/modules to src/lib, src/lib is required by shadcn-ui
-//    - Or go to components.json file and change the alias for utils
-//
-// Shadcn-ui components we want to use:
-//   - Alert Dialog (pop-up with user input)
-//   - Data Table (use for main body of the page)
-//
-// Basic workflow
-// 1. User logs in with email/username
-// 2. UserInfo is fetched from DB in the form of { salt, iv, vault }
-// 3. Prompt user for password, and attempt to decrypt the vault
-//      - What happens if user inputs wrong password?
-//        - ANSWER: We can detect if decryption fails because it will try to throw an error
-//    If there is no existing vault, this should display a dialog to create/confirm a new password
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -115,41 +86,42 @@ export default function Home() {
     })();
   }, [vaultData]);
 
-  // const data = JSON.stringify({
-  //   'amazon': {
-  //     user: 'test@email.com',
-  //     pwd: 'password123',
-  //   },
-  //   'github': {
-  //     userId: 'test@email.com',
-  //     pwd: 'fakePassword123',
-  //   }
-  // });
-  // const password = 'testPassword';
+  function editVault(action: string, keys: any[]) {
+  // function editVault({ action, keys }: { action: 'add', keys: TableColumns[] } | { action: 'remove', keys: string[] }) {
+    // if actions is add, keys is string arr
+    // if action is remove, keys is a object arr
+    const modifier = {
+      add: (vaultData: VaultInfo) => {
+        const testObj = JSON.parse(JSON.stringify(vaultData));
 
-  // // THIS WILL GENERATE A RANDOM SALT AND IV
-  // // const randomSalt = crypto.getRandomValues(Buffer.alloc(32)).toString('base64')
-  // // const randomIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64')
-  // // console.log('Random salt and iv', randomSalt, randomIv)
-  // // console.log(randomSalt)
-  // // console.log(randomIv)
-  // // These are just test values created using the above functions
-  // const testSalt = '86nkYRRBJXHeUv1gp7R3k/E6/MAz7hTsNQNb/CnIDc8=';
-  // const testIv = 'lVui9aPQM+AWtCzo';
+        return keys.reduce((newObj, entry) => {
+          // Check if key already exists
+          if (Object.keys(vaultData).includes(entry.service)) {
+            console.log('ALREADY EXISTS, ADD A REAL ERROR MESSAGE FOR THIS')
+            return newObj
+          }
 
-  // getFullKey(password, testSalt).then(fullKey => {
-  //   encrypt(data, fullKey, testIv).then(encrypted => {
-  //     console.log('encrypted data', encrypted)
-  //     decrypt(encrypted, fullKey, testIv).then(decrypted => {
-  //       console.log('decrypted data', decrypted)
-  //     })
-  //     // getFullKey('wrongPassword', testSalt).then(fullKey => {
-  //     //   decrypt(encrypted, fullKey, testIv).then(decrypted => {
-  //     //     console.log('wrong password', decrypted)
-  //     //   }).catch(err => console.log('DECRYPTION FAILED'))
-  //     // })
-  //   })
-  // })
+          newObj[entry.service] = {
+            userId: entry.userId,
+            password: entry.password,
+            sharedWith: [],
+          }
+          return newObj
+        }, testObj)
+      },
+      remove: (vaultData: VaultInfo) => {
+        return keys.reduce((newObj, key) => {
+          return (({ [key]: deletedKey, ...rest }) => rest)(newObj)
+        }, vaultData)
+      },
+    }[action];
+
+    if (vaultData && modifier) {
+      const newVault = modifier(vaultData);
+      console.log('NEW VAULT', newVault)
+      setVaultData(newVault)
+    }
+  }
 
   return (
     <div>
@@ -161,58 +133,17 @@ export default function Home() {
           <ToggleTheme />
         </div>
       </div>
-      {// !userInfo ? <h1>LOADING...</h1> : 
-        !userInfo ? 
-          <Button disabled className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Please wait
-          </Button> :
+      {!userInfo ? 
+        <Button className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none'>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Please wait
+        </Button> :
         !fullKey ? <GetPassword match={!userInfo.vault} setFullKey={setFullKey} userInfo={userInfo} setVault={setVaultData}/> :
           <div className='w-11/12 md:w-4/5 mx-auto pb-12'>
-            <AddEntry vaultData={vaultData} setVaultData={setVaultData} />
             <MyTable columns={columns} 
               data={Object.keys(vaultData).map(key => ({ ...vaultData[key], service: key, })).toReversed()} // To reversed so its in order from most recent
+              editVault={editVault}
             />
-
-            {/*
-            <div className='flex justify-center'>
-              <Accordion type="multiple" className="w-4/5">
-                {Object.keys(vaultData).map((key, i) => {
-                  return <AccordionItem key={`accordion-${i}`} value={`entry-${i}`}>
-                    <AccordionTrigger>
-                      <div className='overflow-hidden'>{key}</div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      Yes. It adheres to the WAI-ARIA design pattern.
-                    </AccordionContent>
-                  </AccordionItem>
-                })}
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Is it accessible?</AccordionTrigger>
-                  <AccordionContent>
-                    Yes. It adheres to the WAI-ARIA design pattern.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>Is it styled?</AccordionTrigger>
-                  <AccordionContent>
-                    Yes. It comes with default styles that matches the other
-                    components&apos; aesthetic.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Is it animated?</AccordionTrigger>
-                  <AccordionContent>
-                    Yes. It&apos;s animated by default, but you can disable it if you
-                    prefer.
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-
-            </div>
-
-            */}
-
           </div>
       }
     </div>

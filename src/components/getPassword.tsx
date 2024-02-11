@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 
 import { useRef, useState } from 'react'
 import { UserInfo } from '@/types'
-import { decrypt, getFullKey } from '@/modules/security'
+import { decrypt, getFullKey } from '@/lib/security'
 
 export default function GetPassword({ 
   setFullKey,
@@ -54,22 +54,17 @@ export default function GetPassword({
         }
         <form ref={form} onSubmit={async (e) => {
           e.preventDefault()
-          console.log(e)
-          console.log(userInfo)
-          console.log(!userInfo.vault)
+
           if (!userInfo.vault && !confirmMatch()) return console.log('Passwords do not match')
 
           const fullKey = await getFullKey(e.currentTarget.password.value, userInfo.salt);
           let decryptedVault = '';
           try {
             decryptedVault = userInfo.vault ? JSON.parse(await decrypt(userInfo.vault, fullKey, userInfo.iv)) : {};
-            console.log('decrypted vault', decryptedVault)
           } catch {
-            console.log('DECRYPTION FAILED')
             setErrorMsgs(['Password is not correct'])
             return;
           }
-          console.log('END OF FUNCTION')
           setFullKey(fullKey)
           setVault(decryptedVault)
         }}>
