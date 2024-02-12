@@ -3,20 +3,24 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { PopoverClose } from '@radix-ui/react-popover';
 import { Button } from '@/components/ui/button';
+import { EditVaultFunction } from '@/types';
 
-export default function AddEntry({ editVault }: { editVault: Function }) {
+export default function AddEntry({ editVault }: { editVault: EditVaultFunction }) {
   return (
     <Popover>
       <PopoverTrigger asChild><Button>Add</Button></PopoverTrigger>
       <PopoverContent>
         <form className='grid gap-4 py-4' onSubmit={(e) => {
           e.preventDefault();
-          console.log('add password')
-          editVault('add', [{
-            service: e.currentTarget.service.value,
-            userId: e.currentTarget.userId.value,
-            password: e.currentTarget.password.value,
-          }])
+          console.log('added password from addEntry component')
+          editVault({
+            action: 'add',
+            keys: [{
+              service: e.currentTarget.service.value,
+              userId: e.currentTarget.userId.value,
+              password: e.currentTarget.password.value,
+            }]
+          })
         }}>
           <div className='grid grid-cols-4 items-center gap-4'>
             <Label htmlFor='service' className='text-center'>

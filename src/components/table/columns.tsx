@@ -22,7 +22,6 @@ function capAndSplit(str: string[], i = 0) {
 }
 
 function getHeader(column: Column<TableColumns>) {
-  console.log(column.getIsSorted())
   const sortDir= column.getIsSorted();
   return <div className='flex justify-between items-center w-full sm:flex-row flex-col'>
     <p className='truncate'>{capAndSplit(column.id.split(''))}</p>

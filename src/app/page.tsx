@@ -5,11 +5,11 @@
 import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { encrypt } from '@/lib/security';
-import { TableColumns, UserInfo, VaultInfo } from '@/types';
+import { EditVaultParams, TableColumns, UserInfo, VaultInfo } from '@/types';
 import { ToggleTheme } from '@/components/toggleTheme';
 import GetPassword from '@/components/getPassword';
 import MyTable from '@/components/table/myTable';
-import { columns } from '@/components/table/columns';
+// import { columns } from '@/components/table/columns';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -34,9 +34,14 @@ import { Loader2 } from 'lucide-react';
 //  - IV is now changed everytime vault is updated
 //  - Make sure salt is unique in api when new vault is created
 // Add an extra conditional to the render chain that checks for a vault, else displays an error message
-// Search bar only searches by userId, create a checkbox dropdown like the columns selector to choose what columns we're searching in
-// It would be nice we indicated which columns are being sorted, also the X should only appear if it is being sorted
+// [ DONE ] Search bar only searches by userId, create a checkbox dropdown like the columns selector to choose what columns we're searching in
+// [ DONE ] It would be nice we indicated which columns are being sorted, also the X should only appear if it is being sorted
 // Implement input validation module from chat-bun
+// Try to merge useEffect functions in app/page.tsx
+// src/components/table/Columns.tsx has been moved to myTable component,
+//  - Delete the old component if it is not needed
+// Consider moving capAndSplit function to src/lib
+// [ DONE ] Improve editVault function
 // Add a settings menu, should have these options:
 //  - Change password
 //  - Export existing entries
@@ -69,7 +74,6 @@ export default function Home() {
         console.log('UPDATING DATA')
         console.log(userInfo)
         const newIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64');
-        // const encVault = await encrypt(JSON.stringify(vaultData), fullKey, userInfo.iv)
         const encVault = await encrypt(JSON.stringify(vaultData), fullKey, newIv)
         fetch('/api/vault', {
           method: 'POST',
@@ -86,35 +90,32 @@ export default function Home() {
     })();
   }, [vaultData]);
 
-  function editVault(action: string, keys: any[]) {
-  // function editVault({ action, keys }: { action: 'add', keys: TableColumns[] } | { action: 'remove', keys: string[] }) {
-    // if actions is add, keys is string arr
-    // if action is remove, keys is a object arr
+  function editVault({ action, keys }: EditVaultParams) {
     const modifier = {
       add: (vaultData: VaultInfo) => {
-        const testObj = JSON.parse(JSON.stringify(vaultData));
-
         return keys.reduce((newObj, entry) => {
-          // Check if key already exists
-          if (Object.keys(vaultData).includes(entry.service)) {
-            console.log('ALREADY EXISTS, ADD A REAL ERROR MESSAGE FOR THIS')
-            return newObj
+          if (!Object.keys(vaultData).includes(entry.service)) {
+            return {
+              ...newObj,
+              [entry.service]: {
+              userId: entry.userId,
+              password: entry.password,
+              sharedWith: [],
+              }
+            }
           }
-
-          newObj[entry.service] = {
-            userId: entry.userId,
-            password: entry.password,
-            sharedWith: [],
-          }
-          return newObj
-        }, testObj)
+          console.log('ENTRY ALREADY EXISTS')
+          return newObj;
+        }, vaultData)
       },
       remove: (vaultData: VaultInfo) => {
         return keys.reduce((newObj, key) => {
-          return (({ [key]: deletedKey, ...rest }) => rest)(newObj)
+          return (({ [key.service]: deletedKey, ...rest }) => rest)(newObj)
         }, vaultData)
       },
     }[action];
+    console.log('MODIFIER', modifier)
+    console.log('KEYS', keys)
 
     if (vaultData && modifier) {
       const newVault = modifier(vaultData);
@@ -125,8 +126,8 @@ export default function Home() {
 
   return (
     <div>
-      <div className='p-8 flex justify-between items-center flex-col sm:flex-row'>
-        <h1 className='text-4xl font-bold'>Password Manager</h1>
+      <div className='p-8 flex justify-between items-center flex-col sm:flex-row border-b-[1px] mb-8'>
+        <h1 className='text-4xl font-bold text-center'>Password Manager</h1>
         <div className='flex items-center gap-4'>
           {userInfo && userInfo.username ? <h1 className='text-xl'>{userInfo.username}</h1> : []}
           <UserButton />
@@ -140,7 +141,7 @@ export default function Home() {
         </Button> :
         !fullKey ? <GetPassword match={!userInfo.vault} setFullKey={setFullKey} userInfo={userInfo} setVault={setVaultData}/> :
           <div className='w-11/12 md:w-4/5 mx-auto pb-12'>
-            <MyTable columns={columns} 
+            <MyTable // columns={columns} 
               data={Object.keys(vaultData).map(key => ({ ...vaultData[key], service: key, })).toReversed()} // To reversed so its in order from most recent
               editVault={editVault}
             />
