@@ -31,12 +31,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog"
+
 import * as React from 'react';
 import TableOptions from "./tableOptions";
 import { EditVaultFunction, Entry, TableColumns } from "@/types";
 import { Checkbox } from "../ui/checkbox";
 import { Button } from "../ui/button";
 import { ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, X } from "lucide-react";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
 
 export default function MyTable({
   data,
@@ -58,12 +71,18 @@ export default function MyTable({
       <p className='truncate'>{capAndSplit(column.id.split(''))}</p>
       <div className='flex items-center gap-2'>
         {!sortDir ? [] : 
-          <X onClick={() => column.clearSorting()} className='cursor-pointer h-4 w-4'></X>
+          <button onClick={() => column.clearSorting()}>
+            <X className='cursor-pointer h-4 w-4'></X>
+          </button>
         }
-        {sortDir === 'asc' ? <ArrowUp onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}  className="ml-2 h-4 w-4 cursor-pointer"/>
-          : sortDir === 'desc' ? <ArrowDown onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}  className="ml-2 h-4 w-4 cursor-pointer"/>
-            : <ArrowUpDown onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="ml-2 h-4 w-4 cursor-pointer"/>
-        }
+        <button
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          {sortDir === 'asc' ? <ArrowUp  className="h-4 w-4 cursor-pointer"/>
+            : sortDir === 'desc' ? <ArrowDown  className="h-4 w-4 cursor-pointer"/>
+              : <ArrowUpDown  className="h-4 w-4 cursor-pointer"/>
+          }
+        </button>
       </div>
     </div>
   }
@@ -104,9 +123,15 @@ export default function MyTable({
       accessorKey: "password",
       header: ({ column }) => getHeader(column),
       cell: ({ row }) => {
+        const pwd: string = row.getValue('password')
+        const dummyPwd = '●●●●●●●●';
         return (
-          <div className='text-transparent bg-gray-400 h-min max-w-min hover:bg-transparent hover:text-current px-2 rounded overflow-ellipsis overflow-hidden'>
-            {row.getValue('password')}
+          <div // className='text-transparent bg-gray-400 h-min max-w-min hover:bg-transparent hover:text-current px-2 rounded overflow-ellipsis overflow-hidden'
+            // className='text-transparent bg-gray-400 h-min hover:bg-transparent hover:text-current rounded truncate px-2'
+            onMouseEnter={(e) => e.currentTarget.innerText = pwd}
+            onMouseLeave={(e) => e.currentTarget.innerText = dummyPwd}
+          >
+            {dummyPwd}
           </div>
         )
       }
@@ -116,41 +141,108 @@ export default function MyTable({
       enableHiding: false,
       cell: ({ row }) => {
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(row.getValue('userId'))}
-              >
-                Copy User Id 
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(row.getValue('password'))}
-              >
-                Copy Password
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  console.log(row.original)
-                  editVault({
-                    action: 'remove',
-                    keys: [row.original]
-                  })
-                }}
-              >
-                Delete
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Share</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Dialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.getValue('userId'))}>
+                  Copy User Id 
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.getValue('password'))}>
+                  Copy Password
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DialogTrigger asChild>
+                  <DropdownMenuItem>
+                    Update
+                  </DropdownMenuItem>
+                </DialogTrigger>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => editVault({ action: 'remove', keys: [row.original] })}>
+                  Delete
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Share</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Entry</DialogTitle>
+                <DialogDescription>
+                  Something something, update entry information here
+                </DialogDescription>
+              </DialogHeader>
+              <form className='grid gap-4 py-4' onSubmit={(e) => {
+                e.preventDefault();
+                const newEntry = {
+                  service: e.currentTarget.service.value,
+                  userId: e.currentTarget.userId.value,
+                  password: e.currentTarget.password.value,
+                }
+                console.log(newEntry)
+              }}>
+                <div className='grid grid-cols-4 items-center gap-4'>
+                  <Label htmlFor='service' className='text-center'>
+                    Service
+                  </Label>
+                  <Input
+                    id='service'
+                    className='col-span-3'
+                    placeholder='amazon.com'
+                    required
+                    maxLength={64}
+                    defaultValue={row.original.service}
+                  />
+                </div>
+                <div className='grid grid-cols-4 items-center gap-4'>
+                  <Label htmlFor='userId' className='text-center'>
+                    User ID
+                  </Label>
+                  <Input
+                    id='userId'
+                    className='col-span-3'
+                    placeholder='Email or Username'
+                    required
+                    maxLength={64}
+                    defaultValue={row.original.userId}
+                  />
+                </div>
+                <div className='grid grid-cols-4 items-center gap-4'>
+                  <Label htmlFor='password' className='text-center'>
+                    Password
+                  </Label>
+                  <Input
+                    id='password'
+                    placeholder='myPassword123'
+                    className='col-span-3'
+                    required
+                    maxLength={64}
+                    defaultValue={row.original.password}
+                    type='password'
+                    onMouseOver={(e) => e.currentTarget.type = 'text'}
+                    onMouseLeave={(e) => e.currentTarget.type = 'password'}
+                    onFocus={(e) => e.currentTarget.type = 'text'}
+                    onBlur={(e) => e.currentTarget.type = 'password'}
+                  />
+                </div>
+
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="submit">Confirm</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         )
       },
     },

@@ -73,9 +73,10 @@ export default function TableOptions({
       <AddEntry editVault={editVault} />
       <div className='w-full flex gap-4'>
         <Input
-          placeholder="Search..."
+          // placeholder="Search..."
           // value={(table.getColumn("userId")?.getFilterValue() as string) ?? ""}
           // onChange={(event) => table.getColumn("userId")?.setFilterValue(event.target.value)}
+          placeholder={`Search by ${capAndSplit(searchBy.split(''))}...`}
           value={(table.getColumn(searchBy)?.getFilterValue() as string) ?? ""}
           onChange={(event) => table.getColumn(searchBy)?.setFilterValue(event.target.value)}
         />

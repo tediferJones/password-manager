@@ -42,6 +42,10 @@ import { Loader2 } from 'lucide-react';
 //  - Delete the old component if it is not needed
 // Consider moving capAndSplit function to src/lib
 // [ DONE ] Improve editVault function
+// Add the eye icon, use this everywhere that we want to show/hide passwords
+// Try extract repetative html to components
+//  - Create rowActions component for dropdown
+//  - Create form component to easily create forms
 // Add a settings menu, should have these options:
 //  - Change password
 //  - Export existing entries
@@ -52,20 +56,43 @@ export default function Home() {
   const [fullKey, setFullKey] = useState<CryptoKey>();
   const [vaultData, setVaultData] = useState<VaultInfo>({});
 
-  useEffect(() => {
-    (async () => {
-      const res = await fetch('/api/vault');
-      const userInfo: UserInfo = await res.json();
-      console.log(userInfo)
+  // useEffect(() => {
+  //   (async () => {
+  //     const res = await fetch('/api/vault');
+  //     const userInfo: UserInfo = await res.json();
+  //     console.log(userInfo)
 
-      return setUserInfo({
-        username: userInfo.username,
-        vault: userInfo.vault || '',
-        iv: userInfo.iv || crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
-        salt: userInfo.salt || crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
-      })
-    })();
-  }, []);
+  //     return setUserInfo({
+  //       username: userInfo.username,
+  //       vault: userInfo.vault || '',
+  //       iv: userInfo.iv || crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
+  //       salt: userInfo.salt || crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
+  //     })
+  //   })();
+  // }, []);
+
+  // useEffect(() => {
+  //   (async () => {
+  //     console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
+  //     if (vaultData && fullKey && userInfo) {
+  //       console.log('UPDATING DATA')
+  //       console.log(userInfo)
+  //       const newIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64');
+  //       const encVault = await encrypt(JSON.stringify(vaultData), fullKey, newIv)
+  //       fetch('/api/vault', {
+  //         method: 'POST',
+  //         headers:  {
+  //           'Content-Type': 'application/json',
+  //         },
+  //         body: JSON.stringify({
+  //           ...userInfo,
+  //           iv: newIv,
+  //           vault: encVault,
+  //         }),
+  //       });
+  //     }
+  //   })();
+  // }, [vaultData]);
 
   useEffect(() => {
     (async () => {
@@ -86,9 +113,20 @@ export default function Home() {
             vault: encVault,
           }),
         });
+      } else {
+        const res = await fetch('/api/vault');
+        const userInfo: UserInfo = await res.json();
+        console.log('Fetched user info', userInfo)
+
+        setUserInfo({
+          username: userInfo.username,
+          vault: userInfo.vault || '',
+          iv: userInfo.iv || crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
+          salt: userInfo.salt || crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
+        })
       }
     })();
-  }, [vaultData]);
+  }, [vaultData])
 
   function editVault({ action, keys }: EditVaultParams) {
     const modifier = {
@@ -127,9 +165,9 @@ export default function Home() {
   return (
     <div>
       <div className='p-8 flex justify-between items-center flex-col sm:flex-row border-b-[1px] mb-8'>
-        <h1 className='text-4xl font-bold text-center'>Password Manager</h1>
+        <h1 className='text-3xl font-bold text-center'>Password Manager</h1>
         <div className='flex items-center gap-4'>
-          {userInfo && userInfo.username ? <h1 className='text-xl'>{userInfo.username}</h1> : []}
+          {userInfo && userInfo.username ? <h1 className='text-lg'>{userInfo.username}</h1> : []}
           <UserButton />
           <ToggleTheme />
         </div>
