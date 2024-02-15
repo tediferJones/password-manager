@@ -7,14 +7,15 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu" 
+} from '@/components/ui/dropdown-menu' 
 
-import { Input } from "@/components/ui/input";
-import { Button } from "../ui/button";
-import { Table } from "@tanstack/react-table";
-import AddEntry from "../addEntry";
-import { EditVaultFunction } from "@/types";
-import { useState } from "react";
+import { Input } from '@/components/ui/input';
+import { Button } from '../ui/button';
+import { Table } from '@tanstack/react-table';
+import AddEntry from '../addEntry';
+import { EditVaultFunction } from '@/types';
+import { useState } from 'react';
+import capAndSplit from '@/lib/capAndSplit';
 
 export default function TableOptions({
   table,
@@ -24,16 +25,13 @@ export default function TableOptions({
   editVault: EditVaultFunction,
 }) {
   const [searchBy, setSearchBy] = useState('service')
-  function capAndSplit(str: string[], i = 0) {
-    if (!str[i]) return str.join('');
-    if (i === 0) return capAndSplit(str.with(0, str[0].toUpperCase()), i + 1)
-    if ('A' < str[i] && str[i] < 'Z') return capAndSplit(str.toSpliced(i, 0, ' '), i + 2)
-    return capAndSplit(str, i + 1)
-  }
+  const [searchByIsOpen, setSearchByIsOpen] = useState(false);
+  const [filterColsIsOpen, setFilterColsIsOpen] = useState(false);
+
   return (
-    <div className="flex items-center py-4 mx-4 gap-4 flex-wrap">
-      <div className="flex-1 text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length} of{" "}
+    <div className='flex items-center py-4 mx-4 gap-4 flex-wrap'>
+      <div className='flex-1 text-sm text-muted-foreground'>
+        {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} selected
       </div>
       <Button disabled={!table.getFilteredSelectedRowModel().rows.length} variant='destructive'
@@ -46,11 +44,11 @@ export default function TableOptions({
         }}
       >Delete</Button>
       <Button disabled={!table.getFilteredSelectedRowModel().rows.length}>Share</Button>
-      <DropdownMenu>
+      <DropdownMenu open={filterColsIsOpen} onOpenChange={setFilterColsIsOpen}>
         <DropdownMenuTrigger asChild>
-          <Button className="ml-auto">Columns</Button>
+          <Button onClick={() => setFilterColsIsOpen(!filterColsIsOpen)}>Columns</Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align='end'>
           {table
             .getAllColumns()
             .filter((column) => column.getCanHide())
@@ -58,7 +56,7 @@ export default function TableOptions({
               return (
                 <DropdownMenuCheckboxItem
                   key={column.id}
-                  className="capitalize"
+                  className='capitalize'
                   checked={column.getIsVisible()}
                   onCheckedChange={(value) =>
                     column.toggleVisibility(!!value)
@@ -73,18 +71,20 @@ export default function TableOptions({
       <AddEntry editVault={editVault} />
       <div className='w-full flex gap-4'>
         <Input
-          // placeholder="Search..."
-          // value={(table.getColumn("userId")?.getFilterValue() as string) ?? ""}
-          // onChange={(event) => table.getColumn("userId")?.setFilterValue(event.target.value)}
+          // placeholder='Search...'
+          // value={(table.getColumn('userId')?.getFilterValue() as string) ?? ''}
+          // onChange={(event) => table.getColumn('userId')?.setFilterValue(event.target.value)}
           placeholder={`Search by ${capAndSplit(searchBy.split(''))}...`}
-          value={(table.getColumn(searchBy)?.getFilterValue() as string) ?? ""}
+          value={(table.getColumn(searchBy)?.getFilterValue() as string) ?? ''}
           onChange={(event) => table.getColumn(searchBy)?.setFilterValue(event.target.value)}
         />
-        <DropdownMenu>
+        <DropdownMenu open={searchByIsOpen} onOpenChange={setSearchByIsOpen}>
           <DropdownMenuTrigger asChild>
-            <Button>{capAndSplit(searchBy.split(''))}</Button>
+            <Button onClick={() => setSearchByIsOpen(!searchByIsOpen)}>
+              {capAndSplit(searchBy.split(''))}
+            </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
+          <DropdownMenuContent className='w-56'>
             <DropdownMenuLabel>Search by column</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup value={searchBy} onValueChange={(newSearchCol) => {

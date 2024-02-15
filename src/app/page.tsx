@@ -5,7 +5,7 @@
 import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { encrypt } from '@/lib/security';
-import { EditVaultParams, TableColumns, UserInfo, VaultInfo } from '@/types';
+import { EditVaultParams, Entry, TableColumns, UserInfo, VaultInfo } from '@/types';
 import { ToggleTheme } from '@/components/toggleTheme';
 import GetPassword from '@/components/getPassword';
 import MyTable from '@/components/table/myTable';
@@ -28,7 +28,7 @@ import { Loader2 } from 'lucide-react';
 //
 // What to do next:
 // Start building ui
-// Edit modules/security, all functions should take salt and iv as base64 strings
+// Edit lib/security, all functions should take salt and iv as base64 strings
 //  - see if we can use base64 everywhere, especially for the plaintext and password
 // Salt and IV are always recycled, fix this, see notes above
 //  - IV is now changed everytime vault is updated
@@ -37,62 +37,31 @@ import { Loader2 } from 'lucide-react';
 // [ DONE ] Search bar only searches by userId, create a checkbox dropdown like the columns selector to choose what columns we're searching in
 // [ DONE ] It would be nice we indicated which columns are being sorted, also the X should only appear if it is being sorted
 // Implement input validation module from chat-bun
-// Try to merge useEffect functions in app/page.tsx
-// src/components/table/Columns.tsx has been moved to myTable component,
-//  - Delete the old component if it is not needed
-// Consider moving capAndSplit function to src/lib
+// [ DONE ] Try to merge useEffect functions in app/page.tsx
+// [ DONE ] Consider moving capAndSplit function to src/lib
 // [ DONE ] Improve editVault function
-// Add the eye icon, use this everywhere that we want to show/hide passwords
+// [ DONE ] Add the eye icon, use this everywhere that we want to show/hide passwords
 // Try extract repetative html to components
-//  - Create rowActions component for dropdown
+//  - [ DONE ] Create rowActions component for dropdown
 //  - Create form component to easily create forms
+//    - Rename addEntry to entryForm
+//    - change addEntry calls to dialog box, just like the update dialog in rowActions component
+//    - Use the new entryForm component in this replacement dialog box
+//    - Entry form should be able to optionally take values
 // Add a settings menu, should have these options:
 //  - Change password
 //  - Export existing entries
 //  - Import new entries
+// Try to move move getPassword into main body of website
+//  - Control weather this dialog is open depending on the existence of fullKey
+// Add a 'syncing' indicator (like a red/green line)
+//  - when vault changes display 'out of sync' indicator (red)
+//  - when server returns set status based on return res status (if status === 200 then vault is in sync)
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
   const [vaultData, setVaultData] = useState<VaultInfo>({});
-
-  // useEffect(() => {
-  //   (async () => {
-  //     const res = await fetch('/api/vault');
-  //     const userInfo: UserInfo = await res.json();
-  //     console.log(userInfo)
-
-  //     return setUserInfo({
-  //       username: userInfo.username,
-  //       vault: userInfo.vault || '',
-  //       iv: userInfo.iv || crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
-  //       salt: userInfo.salt || crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
-  //     })
-  //   })();
-  // }, []);
-
-  // useEffect(() => {
-  //   (async () => {
-  //     console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
-  //     if (vaultData && fullKey && userInfo) {
-  //       console.log('UPDATING DATA')
-  //       console.log(userInfo)
-  //       const newIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64');
-  //       const encVault = await encrypt(JSON.stringify(vaultData), fullKey, newIv)
-  //       fetch('/api/vault', {
-  //         method: 'POST',
-  //         headers:  {
-  //           'Content-Type': 'application/json',
-  //         },
-  //         body: JSON.stringify({
-  //           ...userInfo,
-  //           iv: newIv,
-  //           vault: encVault,
-  //         }),
-  //       });
-  //     }
-  //   })();
-  // }, [vaultData]);
 
   useEffect(() => {
     (async () => {
@@ -129,8 +98,8 @@ export default function Home() {
   }, [vaultData])
 
   function editVault({ action, keys }: EditVaultParams) {
-    const modifier = {
-      add: (vaultData: VaultInfo) => {
+    const actions = {
+      add: (vaultData: VaultInfo, keys: Entry[]) => {
         return keys.reduce((newObj, entry) => {
           if (!Object.keys(vaultData).includes(entry.service)) {
             return {
@@ -146,20 +115,21 @@ export default function Home() {
           return newObj;
         }, vaultData)
       },
-      remove: (vaultData: VaultInfo) => {
+      remove: (vaultData: VaultInfo, keys: Entry[]) => {
         return keys.reduce((newObj, key) => {
           return (({ [key.service]: deletedKey, ...rest }) => rest)(newObj)
         }, vaultData)
       },
-    }[action];
-    console.log('MODIFIER', modifier)
-    console.log('KEYS', keys)
-
-    if (vaultData && modifier) {
-      const newVault = modifier(vaultData);
-      console.log('NEW VAULT', newVault)
-      setVaultData(newVault)
+      update: (vaultData: VaultInfo, keys: Entry[]) => {
+        return actions.add(
+          actions.remove(vaultData, keys),
+          keys.filter(entry => entry.newService).map(({ newService, ...rest }) => {
+            return { ...rest, service: newService, }
+          }) as Entry[]
+        );
+      }
     }
+    setVaultData(actions[action](vaultData, keys))
   }
 
   return (
@@ -174,12 +144,12 @@ export default function Home() {
       </div>
       {!userInfo ? 
         <Button className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none'>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
           Please wait
         </Button> :
         !fullKey ? <GetPassword match={!userInfo.vault} setFullKey={setFullKey} userInfo={userInfo} setVault={setVaultData}/> :
           <div className='w-11/12 md:w-4/5 mx-auto pb-12'>
-            <MyTable // columns={columns} 
+            <MyTable
               data={Object.keys(vaultData).map(key => ({ ...vaultData[key], service: key, })).toReversed()} // To reversed so its in order from most recent
               editVault={editVault}
             />

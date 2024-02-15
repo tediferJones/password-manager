@@ -24,11 +24,12 @@ interface Entry {
   service: string,
   userId: string,
   password: string,
-  sharedWith?: string[]
+  sharedWith?: string[],
+  newService?: string,
 }
 
 interface EditVaultParams {
-  action: 'add' | 'remove',
+  action: 'add' | 'remove' | 'update',
   keys: Entry[]
 }
 
