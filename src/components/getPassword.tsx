@@ -7,37 +7,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+// import { Label } from '@/components/ui/label'
+// import { Input } from '@/components/ui/input'
 
 import { useRef, useState } from 'react'
-import { UserInfo } from '@/types'
+import { UserInfo, VaultInfo } from '@/types'
 import { decrypt, getFullKey } from '@/lib/security'
+import PasswordForm from './passwordForm'
 
 export default function GetPassword({ 
   setFullKey,
   userInfo,
   setVault,
-  match,
-  confirmOld,
+  fullKey,
 }: {
   setFullKey: Function,
   userInfo: UserInfo,
   setVault: Function,
-  match?: boolean,
-  confirmOld?: boolean,
+  fullKey?: CryptoKey,
 }) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [errorMsgs, setErrorMsgs] = useState<string[]>([])
   const form = useRef<HTMLFormElement>(null);
+  const match = !userInfo.vault;
 
   function confirmMatch() {
     return form.current && form.current.password.value === form.current.confirm.value
   }
 
   return (
-    <AlertDialog defaultOpen open={isOpen}>
+    <AlertDialog defaultOpen open={!fullKey}>
       <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
         <AlertDialogHeader>
           <AlertDialogTitle>Please enter your password to continue</AlertDialogTitle>
@@ -52,13 +50,14 @@ export default function GetPassword({
             {errorMsgs.map((msg, i) => <div key={`getPasswordError-${i}`}>{msg}</div>)}
           </div>
         }
-        <form ref={form} onSubmit={async (e) => {
+        <form ref={form} className='grid gap-4 py-4'
+          onSubmit={async (e) => {
           e.preventDefault()
 
           if (!userInfo.vault && !confirmMatch()) return console.log('Passwords do not match')
 
           const fullKey = await getFullKey(e.currentTarget.password.value, userInfo.salt);
-          let decryptedVault = '';
+          let decryptedVault;
           try {
             decryptedVault = userInfo.vault ? JSON.parse(await decrypt(userInfo.vault, fullKey, userInfo.iv)) : {};
           } catch {
@@ -68,42 +67,7 @@ export default function GetPassword({
           setFullKey(fullKey)
           setVault(decryptedVault)
         }}>
-          <div className='grid gap-4 py-4'>
-            <div className='grid grid-cols-4 items-center gap-4'>
-              <Label htmlFor='password' className='text-center'>
-                Password
-              </Label>
-              <Input
-                id='password'
-                className='col-span-3'
-                minLength={8}
-                required
-                onChange={() => {
-                  if (match) {
-                    setPasswordsMatch(!!confirmMatch())
-                  }
-                }}
-              />
-            </div>
-            {!match ? [] :
-              <div className='grid grid-cols-4 items-center gap-4'>
-                <Label htmlFor='confirm' className='text-center'>
-                  Confirm
-                </Label>
-                <Input
-                  id='confirm'
-                  className={`col-span-3 ${passwordsMatch ? '' : 'border-red-500 border-2'}`}
-                  minLength={8}
-                  required
-                  onChange={() => {
-                    if (match) {
-                      setPasswordsMatch(!!confirmMatch())
-                    }
-                  }}
-                />
-              </div>
-            }
-          </div>
+          <PasswordForm confirmMatch={confirmMatch} match={match} />
           <AlertDialogFooter>
             <AlertDialogAction type='submit'>
               {match ? 'Create Vault' : 'Decrypt Vault'}

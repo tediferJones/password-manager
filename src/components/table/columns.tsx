@@ -53,8 +53,8 @@ export default function getColumnDefs(editVault: EditVaultFunction) {
               {showPwd ? row.getValue('password') : '●●●●●●●●'}
             </div>
             <button onClick={() => setShowPwd(!showPwd)}>
-              {showPwd ? <EyeOff className='h-4 w-4 mx-4' /> : 
-                <Eye className='h-4 w-4 mx-4'/>
+              {showPwd ? <EyeOff className='h-4 w-4' /> : 
+                <Eye className='h-4 w-4' />
               }
             </button>
           </div>

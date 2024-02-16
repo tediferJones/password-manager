@@ -9,6 +9,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu' 
 
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
 import { Input } from '@/components/ui/input';
 import { Button } from '../ui/button';
 import { Table } from '@tanstack/react-table';
@@ -16,6 +27,7 @@ import AddEntry from '../addEntry';
 import { EditVaultFunction } from '@/types';
 import { useState } from 'react';
 import capAndSplit from '@/lib/capAndSplit';
+import EntryForm from '../entryForm';
 
 export default function TableOptions({
   table,
@@ -68,12 +80,38 @@ export default function TableOptions({
             })}
         </DropdownMenuContent>
       </DropdownMenu>
-      <AddEntry editVault={editVault} />
+
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button>Add</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Entry</DialogTitle>
+          </DialogHeader>
+          <form className='grid gap-4 py-4' onSubmit={(e) => {
+            e.preventDefault();
+            editVault({
+              action: 'add',
+              keys: [{
+                service: e.currentTarget.service.value,
+                userId: e.currentTarget.userId.value,
+                password: e.currentTarget.password.value,
+              }],
+            })
+          }}>
+            <EntryForm />
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type='submit'>Add</Button>
+              </DialogClose>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <div className='w-full flex gap-4'>
         <Input
-          // placeholder='Search...'
-          // value={(table.getColumn('userId')?.getFilterValue() as string) ?? ''}
-          // onChange={(event) => table.getColumn('userId')?.setFilterValue(event.target.value)}
           placeholder={`Search by ${capAndSplit(searchBy.split(''))}...`}
           value={(table.getColumn(searchBy)?.getFilterValue() as string) ?? ''}
           onChange={(event) => table.getColumn(searchBy)?.setFilterValue(event.target.value)}
