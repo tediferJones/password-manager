@@ -33,7 +33,8 @@ interface EditVaultParams {
   keys: Entry[]
 }
 
-type EditVaultFunction = ({ action, keys }: EditVaultParams) => void;
+// type EditVaultFunction = ({ action, keys }: EditVaultParams) => void;
+type EditVaultFunction = ({ action, keys }: EditVaultParams) => string | undefined;
 
 export type {
   UserInfo,

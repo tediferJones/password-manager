@@ -7,11 +7,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-// import { Label } from '@/components/ui/label'
-// import { Input } from '@/components/ui/input'
 
 import { useRef, useState } from 'react'
-import { UserInfo, VaultInfo } from '@/types'
+import { UserInfo } from '@/types'
 import { decrypt, getFullKey } from '@/lib/security'
 import PasswordForm from './passwordForm'
 

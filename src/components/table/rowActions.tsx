@@ -17,17 +17,22 @@ import {
   DialogDescription
 } from '@/components/ui/dialog'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { EditVaultFunction, TableColumns } from '@/types';
 import EntryForm from '../entryForm';
+import ViewErrors from '../viewErrors';
 
 export default function RowActions({ row, editVault }: { row: Row<TableColumns>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
   const [editIsOpen, setEditIsOpen] = useState(false);
+  const [editErrors, setEditErrors] = useState<string[]>([]);
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
+
+  useEffect(() => setEditErrors([]), [editIsOpen])
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
@@ -61,9 +66,11 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
           <DialogHeader>
             <DialogTitle>Edit Entry</DialogTitle>
           </DialogHeader>
+          <ViewErrors errors={editErrors} name='editErrors'/>
           <form className='grid gap-4 py-4' onSubmit={(e) => {
             e.preventDefault();
-            editVault({
+            setEditErrors([]);
+            const error = editVault({
               action: 'update',
               keys: [{
                 newService: e.currentTarget.service.value,
@@ -72,6 +79,7 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
                 service: row.original.service
               }],
             })
+            error ? setEditErrors([error]) : setEditIsOpen(false);
           }}>
             <EntryForm entry={row.original} />
             <DialogFooter>

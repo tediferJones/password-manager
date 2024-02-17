@@ -58,12 +58,15 @@ import UserSettings from '@/components/userSettings';
 //  - addEntry component has been replaced by entryForm
 //    - Delete addEntry if it's no longer needed
 // Add a settings menu, should have these options:
-//  - Change password
+//  - [ DONE ] Change password
 //  - Export existing entries
 //  - Import new entries
 // Add a 'syncing' indicator (like a red/green line)
 //  - when vault changes display 'out of sync' indicator (red)
 //  - when server returns set status based on return res status (if status === 200 then vault is in sync)
+// [ DONE ] Add skip button tableOptions update modal
+// [ DONE ] Add password view toggles to getPassword component and password reset dialog
+// Re-organize getPassword props
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -108,7 +111,7 @@ export default function Home() {
     })();
   }, [vaultData, fullKey])
 
-  function editVault({ action, keys }: EditVaultParams) {
+  function editVault({ action, keys }: EditVaultParams): string | undefined {
     const actions = {
       add: (vaultData: VaultInfo, keys: Entry[]) => {
         return keys.reduce((newObj, entry) => {
@@ -132,6 +135,8 @@ export default function Home() {
         }, vaultData)
       },
       update: (vaultData: VaultInfo, keys: Entry[]) => {
+        // If the update command is used, keys should have both service and newService
+        // service is the name of the original, newService is the updated name
         return actions.add(
           actions.remove(vaultData, keys),
           keys.filter(entry => entry.newService).map(({ newService, ...rest }) => {
@@ -140,7 +145,22 @@ export default function Home() {
         );
       }
     }
+
     if (vaultData) {
+      const services = Object.keys(vaultData);
+      if (action === 'add' && keys.some(key => services.includes(key.service))) {
+        console.log('found error in editVault')
+        return 'Service name already exists'
+      }
+
+      if (action === 'update') {
+        if (keys.some(key => key.newService && (key.service !== key.newService) && services.includes(key.newService))) {
+          console.log('Prevented update cuz new name already exists')
+          return 'Service name already exists'
+        }
+      }
+
+      // Check for existing service names before we modify vault
       setVaultData(actions[action](vaultData, keys))
     }
   }
