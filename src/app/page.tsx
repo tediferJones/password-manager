@@ -4,15 +4,14 @@
 // import Image from 'next/image';
 import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
-import { encrypt } from '@/lib/security';
-import { EditVaultParams, Entry, TableColumns, UserInfo, VaultInfo } from '@/types';
+import { Loader2 } from 'lucide-react';
 import { ToggleTheme } from '@/components/toggleTheme';
+import { Button } from '@/components/ui/button';
 import GetPassword from '@/components/getPassword';
 import MyTable from '@/components/table/myTable';
-// import { columns } from '@/components/table/columns';
-import { Button } from '@/components/ui/button';
-import { Loader2, Settings } from 'lucide-react';
 import UserSettings from '@/components/userSettings';
+import { encrypt, getFullKey } from '@/lib/security';
+import { EditVaultParams, Entry, UserInfo, VaultInfo } from '@/types';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -67,6 +66,8 @@ import UserSettings from '@/components/userSettings';
 // [ DONE ] Add skip button tableOptions update modal
 // [ DONE ] Add password view toggles to getPassword component and password reset dialog
 // Re-organize getPassword props
+// Breakup tableOptions, each button should get its own component
+// Add random password generator to GetPassword component, only when setting up a new user
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();

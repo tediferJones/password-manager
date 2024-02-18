@@ -1,12 +1,9 @@
-// async function getFullKey(password: string, salt: Uint8Array) {
 async function getFullKey(password: string, salt: string) {
   return await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      // salt,
       salt: Buffer.from(salt, 'base64'),
-      // iterations: 100000,
-         iterations: 1000000,
+      iterations: 1000000,
       hash: 'SHA-256',
     },
     await crypto.subtle.importKey(
@@ -22,7 +19,6 @@ async function getFullKey(password: string, salt: string) {
   )
 }
 
-// async function encrypt(plainText: string, fullKey: CryptoKey, iv: ArrayBuffer) {
 async function encrypt(plainText: string, fullKey: CryptoKey, iv: string) {
   return Buffer.from(
     await crypto.subtle.encrypt(
@@ -33,7 +29,6 @@ async function encrypt(plainText: string, fullKey: CryptoKey, iv: string) {
   ).toString('base64')
 }
 
-// async function decrypt(cipherText: string, fullKey: CryptoKey, iv: ArrayBuffer) {
 async function decrypt(cipherText: string, fullKey: CryptoKey, iv: string) {
   return Buffer.from(
     await crypto.subtle.decrypt(
@@ -44,8 +39,36 @@ async function decrypt(cipherText: string, fullKey: CryptoKey, iv: string) {
   ).toString()
 }
 
+const charTypes: { [key: string]: (n: number) => boolean } = {
+  uppercase: (n) => 65 <= n && n <= 90, // 65 - 90
+  lowercase: (n) => 97 <= n && n <= 122, // 97 - 122
+  numbers: (n) => 48 <= n && n <= 57, // 48 - 57
+  // 33 - 47 & 58 - 64 & 91 - 96 & 123 - 126
+  symbols: (n) => (
+    (33 <= n && n <= 47) ||
+      (58 <= n && n <= 64) ||
+      (91 <= n && n <= 96) ||
+      (123 <= n && n <= 126)
+  ), 
+};
+
+function getRandPwd(length: number, valid: string[], pwd: number[] = []): string {
+  return pwd.length >= length ? pwd.slice(0, length).map(charCode => String.fromCharCode(charCode)).join('') :
+    getRandPwd(
+      length,
+      valid,
+      pwd.concat(
+        Array.from(crypto.getRandomValues(Buffer.alloc(length)))
+          .map(rand => rand > 128 ? Math.floor(rand / 2) : rand)
+          .filter(rand => valid.some(charType => charTypes[charType](rand)))
+      )
+    )
+}
+
 export {
   encrypt,
   decrypt,
   getFullKey,
+  charTypes,
+  getRandPwd,
 }

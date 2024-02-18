@@ -17,19 +17,24 @@ import {
   DialogDescription
 } from '@/components/ui/dialog'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { EditVaultFunction, TableColumns } from '@/types';
 import EntryForm from '../entryForm';
 import ViewErrors from '../viewErrors';
+import GetRandomString from '../getRandomString';
 
 export default function RowActions({ row, editVault }: { row: Row<TableColumns>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
+
   const [editIsOpen, setEditIsOpen] = useState(false);
   const [editErrors, setEditErrors] = useState<string[]>([]);
+  const editForm = useRef<HTMLFormElement>(null);
+
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
+
 
   useEffect(() => setEditErrors([]), [editIsOpen])
 
@@ -67,7 +72,7 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
             <DialogTitle>Edit Entry</DialogTitle>
           </DialogHeader>
           <ViewErrors errors={editErrors} name='editErrors'/>
-          <form className='grid gap-4 py-4' onSubmit={(e) => {
+          <form className='grid gap-4 py-4' ref={editForm} onSubmit={(e) => {
             e.preventDefault();
             setEditErrors([]);
             const error = editVault({
@@ -86,6 +91,13 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
               <DialogClose asChild>
                 <Button variant='secondary'>Cancel</Button>
               </DialogClose>
+              <GetRandomString
+                buttonText='Generate'
+                secondary
+                func={(pwd) => {
+                  if (editForm.current) editForm.current.password.value = pwd
+                }}
+              />
               <Button type='submit'>Update</Button>
             </DialogFooter>
           </form>

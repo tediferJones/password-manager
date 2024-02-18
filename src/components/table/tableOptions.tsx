@@ -28,6 +28,8 @@ import { useEffect, useRef, useState } from 'react';
 import capAndSplit from '@/lib/capAndSplit';
 import EntryForm from '../entryForm';
 import ViewErrors from '../viewErrors';
+import { getRandPwd } from '@/lib/security';
+import GetRandomString from '../getRandomString';
 
 export default function TableOptions({
   table,
@@ -42,31 +44,27 @@ export default function TableOptions({
 
   const [addIsOpen, setAddIsOpen] = useState(false);
   const [addErrors, setAddErrors] = useState<string[]>([]);
+  const addForm = useRef<HTMLFormElement>(null);
 
   const [updateIsOpen, setUpdateIsOpen] = useState(false);
   const [updateErrors, setUpdateErrors] = useState<string[]>([]);
-  const form = useRef<HTMLFormElement>(null);
+  const updateForm = useRef<HTMLFormElement>(null);
 
   useEffect(() => setAddErrors([]), [addIsOpen])
 
   function setForm(entry: Entry) {
-    if (form.current) {
-      form.current.service.value = entry.service;
-      form.current.userId.value = entry.userId;
-      form.current.password.value = entry.password;
+    if (updateForm.current) {
+      updateForm.current.service.value = entry.service;
+      updateForm.current.userId.value = entry.userId;
+      updateForm.current.password.value = entry.password;
     }
   }
 
   function setNextEntry() {
-    if (form.current) {
+    if (updateForm.current) {
       const [currentRow, nextRow] = table.getFilteredSelectedRowModel().rows;
       currentRow.toggleSelected(false);
       nextRow ? setForm(nextRow.original) : setUpdateIsOpen(false);
-      // if (nextRow) {
-      //   setForm(nextRow.original)
-      // } else {
-      //   setUpdateIsOpen(false);
-      // }
     }
   }
 
@@ -76,6 +74,7 @@ export default function TableOptions({
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} selected
       </div>
+      <GetRandomString buttonText={'Copy'} func={(newPwd) => navigator.clipboard.writeText(newPwd)} />
       <Dialog>
         <DialogTrigger asChild>
           <Button disabled={!table.getFilteredSelectedRowModel().rows.length} variant='destructive'>
@@ -125,7 +124,7 @@ export default function TableOptions({
             <DialogTitle>Edit Entry</DialogTitle>
           </DialogHeader>
           <ViewErrors errors={updateErrors} name='updateErrors'/>
-          <form ref={form} className='grid gap-4 py-4' onSubmit={(e) => {
+          <form ref={updateForm} className='grid gap-4 py-4' onSubmit={(e) => {
             const [ currentRow ] = table.getFilteredSelectedRowModel().rows;
             console.log('EDITING', currentRow.original)
             e.preventDefault();
@@ -151,6 +150,13 @@ export default function TableOptions({
               <Button variant='secondary' type='button'
                 onClick={() => setForm(table.getFilteredSelectedRowModel().rows[0].original)}
               >Reset</Button>
+              <GetRandomString 
+                buttonText='Generate'
+                secondary
+                func={(pwd) => {
+                  if (updateForm.current) updateForm.current.password.value = pwd
+                }}
+              />
               <Button variant='secondary' type='button' 
                 onClick={() => {
                   setUpdateErrors([]);
@@ -163,33 +169,6 @@ export default function TableOptions({
       </Dialog>
 
       <Button disabled={!table.getFilteredSelectedRowModel().rows.length}>Share</Button>
-      <Button onClick={() => {
-        function range(min: number, max: number) {
-          return Array.from(Array(max - min + 1).keys()).map(n => n + min)
-        }
-        const groups = {
-          'uppercase': range(65, 90), // 65 - 90
-          'lowercase': range(97, 122), // 97 - 122
-          'numbers': range(48, 57), // 48 - 57
-          // 33 - 47 & 58 - 64 & 91 - 96 & 123 - 126
-          'symbols': range(33, 47).concat(range(58, 64)).concat(range(91, 96)).concat(range(123, 126)),
-        }
-        function getRandom(length: number, valid: number[], rand: number[] = []): string {
-          return rand.length >= length ? rand.slice(0, length).map(charCode => String.fromCharCode(charCode)).join('') :
-            getRandom(
-              length,
-              valid,
-              rand.concat(
-                Array.from(crypto.getRandomValues(Buffer.alloc(length)))
-                  .filter(num => valid.includes(num))
-              )
-            )
-        }
-        // FROM 33 to 126
-        console.log(getRandom(10, Array.from(Array(93).keys()).map(n => n + 33)))
-        // const test = crypto.getRandomValues(Buffer.alloc(5))
-        // console.log(Buffer.from(test).toString('hex'))
-      }}>Get Random</Button>
 
       <Dialog open={addIsOpen} onOpenChange={setAddIsOpen}>
         <DialogTrigger asChild>
@@ -200,7 +179,7 @@ export default function TableOptions({
             <DialogTitle>Add Entry</DialogTitle>
           </DialogHeader>
           <ViewErrors errors={addErrors} name='addErrors' />
-          <form className='grid gap-4 py-4' onSubmit={(e) => {
+          <form className='grid gap-4 py-4' ref={addForm} onSubmit={(e) => {
             e.preventDefault();
             setAddErrors([]);
             const error = editVault({
@@ -218,6 +197,13 @@ export default function TableOptions({
               <DialogClose asChild>
                 <Button variant='secondary'>Cancel</Button>
               </DialogClose>
+              <GetRandomString 
+                buttonText='Generate'
+                secondary
+                func={(pwd) => {
+                  if (addForm.current) addForm.current.password.value = pwd
+                }}
+              />
               <Button type='submit'>Add</Button>
             </DialogFooter>
           </form>

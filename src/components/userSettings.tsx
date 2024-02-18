@@ -24,6 +24,7 @@ import PasswordForm from "./passwordForm";
 import { UserInfo} from "@/types";
 import { decrypt, getFullKey } from "@/lib/security";
 import ViewErrors from "./viewErrors";
+import GetRandomString from "./getRandomString";
 
 export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserInfo, setFullKey: Function }) {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
@@ -97,6 +98,16 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
               <DialogClose asChild>
                 <Button variant='secondary'>Cancel</Button>
               </DialogClose>
+              <GetRandomString
+                buttonText='Generate'
+                secondary
+                func={(pwd) => {
+                  if (form.current) {
+                    form.current.password.value = pwd
+                    form.current.confirm.value = pwd
+                  }
+                }}
+              />
               <Button type='submit'>Change Password</Button>
             </DialogFooter>
           </form>
