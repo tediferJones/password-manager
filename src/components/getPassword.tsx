@@ -12,6 +12,7 @@ import { useRef, useState } from 'react'
 import { UserInfo } from '@/types'
 import { decrypt, getFullKey } from '@/lib/security'
 import PasswordForm from './passwordForm'
+import GetRandomString from './getRandomString'
 
 export default function GetPassword({ 
   setFullKey,
@@ -67,6 +68,18 @@ export default function GetPassword({
         }}>
           <PasswordForm confirmMatch={confirmMatch} match={match} />
           <AlertDialogFooter>
+            {!match ? [] : 
+              <GetRandomString
+                buttonText='Generate'
+                secondary
+                func={(pwd) => {
+                  if (form.current) {
+                    form.current.password.value = pwd
+                    form.current.confirm.value = pwd
+                  }
+                }}
+              />
+            }
             <AlertDialogAction type='submit'>
               {match ? 'Create Vault' : 'Decrypt Vault'}
             </AlertDialogAction>

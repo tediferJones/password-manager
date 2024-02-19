@@ -74,7 +74,7 @@ export default function TableOptions({
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} selected
       </div>
-      <GetRandomString buttonText={'Copy'} func={(newPwd) => navigator.clipboard.writeText(newPwd)} />
+      <GetRandomString buttonText={'Copy'} />
       <Dialog>
         <DialogTrigger asChild>
           <Button disabled={!table.getFilteredSelectedRowModel().rows.length} variant='destructive'>

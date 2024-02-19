@@ -68,6 +68,18 @@ import { EditVaultParams, Entry, UserInfo, VaultInfo } from '@/types';
 // Re-organize getPassword props
 // Breakup tableOptions, each button should get its own component
 // Add random password generator to GetPassword component, only when setting up a new user
+// [ DONE ] Add confirmation dialog to password reset form
+// Fix Entry type, sharedWith should be required
+// Add index.tsx to src/components?
+//  - That way we can import multiple components in one line
+// Move src/db.ts to src/drizzle/db.ts
+// Apparently we dont need to verify users in api routes, this is already taken care of by clerk
+//
+// How do we want to handle password sharing?
+// Table format:
+// id: number
+// recipient: string ('tediferJones671')
+// entry: Entry ({ service, userId, password, sharedWith, newService? })
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -120,9 +132,9 @@ export default function Home() {
             return {
               ...newObj,
               [entry.service]: {
-              userId: entry.userId,
-              password: entry.password,
-              sharedWith: [],
+                userId: entry.userId,
+                password: entry.password,
+                sharedWith: [],
               }
             }
           }

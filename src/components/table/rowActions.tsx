@@ -19,12 +19,14 @@ import {
 
 import { useEffect, useRef, useState } from 'react';
 import { Row } from '@tanstack/react-table';
-import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 import { EditVaultFunction, TableColumns } from '@/types';
 import EntryForm from '../entryForm';
 import ViewErrors from '../viewErrors';
 import GetRandomString from '../getRandomString';
+import { Button } from '@/components/ui/button';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 export default function RowActions({ row, editVault }: { row: Row<TableColumns>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,6 +37,7 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
 
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
 
+  const [shareIsOpen, setShareIsOpen] = useState(false);
 
   useEffect(() => setEditErrors([]), [editIsOpen])
 
@@ -63,7 +66,7 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
           Delete
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Share</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setShareIsOpen(true)}>Share</DropdownMenuItem>
       </DropdownMenuContent>
 
       <Dialog open={editIsOpen} onOpenChange={setEditIsOpen}>
@@ -102,29 +105,57 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
             </DialogFooter>
           </form>
         </DialogContent>
+      </Dialog>
 
-        <Dialog open={deleteIsOpen} onOpenChange={setDeleteIsOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Entry</DialogTitle>
-            </DialogHeader>
-            <DialogDescription>
-              Are you sure you want to delete this entry?
-            </DialogDescription>
-            <span className='text-center'>{row.original.service}</span>
-            <form className='grid gap-4 py-4' onSubmit={(e) => {
-              e.preventDefault();
-              editVault({ action: 'remove', keys: [row.original] })
-            }}>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant='secondary'>Cancel</Button>
-                </DialogClose>
-                <Button type='submit' variant='destructive'>Delete</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+      <Dialog open={deleteIsOpen} onOpenChange={setDeleteIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Entry</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            Are you sure you want to delete this entry?
+          </DialogDescription>
+          <span className='text-center'>{row.original.service}</span>
+          <form className='grid gap-4 py-4' onSubmit={(e) => {
+            e.preventDefault();
+            editVault({ action: 'remove', keys: [row.original] })
+          }}>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant='secondary'>Cancel</Button>
+              </DialogClose>
+              <Button type='submit' variant='destructive'>Delete</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareIsOpen} onOpenChange={setShareIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Entry</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            Are you sure you want to share this entry?
+          </DialogDescription>
+          <span className='text-center'>{row.original.service}</span>
+          <form className='grid gap-4 py-4' onSubmit={(e) => {
+            e.preventDefault();
+            // editVault({ action: 'remove', keys: [row.original] })
+          }}>
+            <div className='grid grid-cols-4 items-center gap-4'>
+              <Label className='text-center'>Recipient</Label>
+              <Input className='col-span-3' required/>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant='secondary'>Cancel</Button>
+              </DialogClose>
+              <Button>Add Another User</Button>
+              <Button type='submit'>Share</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
     </DropdownMenu>
   )

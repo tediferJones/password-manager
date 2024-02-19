@@ -30,6 +30,7 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const [resetIsOpen, setResetIsOpen] = useState(false);
   const [errorMsgs, setErrorMsgs] = useState<string[]>([])
+  const [confirmIsOpen, setConfirmIsOpen] = useState(false);
   const form = useRef<HTMLFormElement>(null);
 
   useEffect(() => setErrorMsgs([]), [menuIsOpen])
@@ -71,6 +72,7 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
 
             e.preventDefault();
             setErrorMsgs([]);
+            console.log('submitting')
             const formData = {
               oldPassword: e.currentTarget.oldPassword.value,
               password: e.currentTarget.password.value,
@@ -87,11 +89,12 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
               setErrorMsgs(['Old password is not correct'])
               return;
             }
+            setConfirmIsOpen(true);
 
-            const newKey = await getFullKey(formData.password, userInfo.salt)
-            setFullKey(newKey)
-            form.current?.reset();
-            setResetIsOpen(false);
+            // const newKey = await getFullKey(formData.password, userInfo.salt)
+            // setFullKey(newKey)
+            // form.current?.reset();
+            // setResetIsOpen(false);
           }}>
             <PasswordForm confirmMatch={confirmMatch} match={true} confirmOld={true} />
             <DialogFooter>
@@ -111,6 +114,29 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
               <Button type='submit'>Change Password</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={confirmIsOpen} onOpenChange={setConfirmIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to change your decryption password?  This change can not be undone
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant='secondary'>Cancel</Button>
+            </DialogClose>
+            <Button variant='destructive' onClick={async() => {
+              if (form.current) {
+                setFullKey(await getFullKey(form.current.password.value, userInfo.salt))
+                form.current?.reset();
+                setConfirmIsOpen(false);
+                setResetIsOpen(false);
+              }
+            }}>Yes I'm sure</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </DropdownMenu>

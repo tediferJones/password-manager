@@ -18,7 +18,7 @@ export default function GetRandomString({
 }: {
   buttonText: string,
   secondary?: boolean,
-  func: (pwd: string) => void
+  func?: (pwd: string) => void
 } ) {
   const [isOpen, setIsOpen] = useState(false);
   const form = useRef<HTMLFormElement>(null);
@@ -29,16 +29,16 @@ export default function GetRandomString({
       </PopoverTrigger>
       <PopoverContent className='w-min'>
         <form className='flex flex-col gap-4' ref={form} onSubmit={(e) => {
-          e.preventDefault();
-          func(
-            getRandPwd(
-              Number(e.currentTarget.pwdLength.value),
-              Object.keys(charTypes).filter(charType => {
-                return e.currentTarget[charType].ariaChecked === 'true'
-              })
-            )
-          )
-          setIsOpen(false)
+          // e.preventDefault();
+          // const newPwd = getRandPwd(
+          //   Number(e.currentTarget.pwdLength.value),
+          //   Object.keys(charTypes).filter(charType => {
+          //     return e.currentTarget[charType].ariaChecked === 'true'
+          //   })
+          // )
+          // navigator.clipboard.writeText(newPwd)
+          // if (func) func(newPwd)
+          // setIsOpen(false)
         }}>
           <Label htmlFor='pwdLength'>Length</Label>
           <Input type='number' min={8} max={64} defaultValue={16} id='pwdLength' />
@@ -53,14 +53,14 @@ export default function GetRandomString({
             })}
           <Button type='button' onClick={() => {
             if (form.current) {
-              func(
-                getRandPwd(
-                  Number(form.current.pwdLength.value),
-                  Object.keys(charTypes).filter(charType => {
-                    return form.current && form.current[charType].ariaChecked === 'true'
-                  })
-                )
+              const newPwd = getRandPwd(
+                Number(form.current.pwdLength.value),
+                Object.keys(charTypes).filter(charType => {
+                  return form.current && form.current[charType].ariaChecked === 'true'
+                })
               )
+              navigator.clipboard.writeText(newPwd)
+              if (func) func(newPwd)
               setIsOpen(false)
             }
           }}>{buttonText}</Button>
