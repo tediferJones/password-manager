@@ -91,7 +91,10 @@ export default function Home() {
       if (!userInfo) {
         const res = await fetch('/api/vault');
         const userInfo: UserInfo = await res.json();
-        console.log('Fetched user info', userInfo)
+        // console.log('Fetched user info', userInfo)
+
+        const newShares = await fetch('/api/share').then(res => res.json())
+        console.log('newShares', newShares)
 
         setUserInfo({
           username: userInfo.username,

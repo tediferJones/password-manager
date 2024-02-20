@@ -65,10 +65,17 @@ function getRandPwd(length: number, valid: string[], pwd: number[] = []): string
     )
 }
 
+async function getHash(str: string) {
+  return Buffer.from(
+    await crypto.subtle.digest('SHA-256', Buffer.from(str))
+  ).toString('base64')
+}
+
 export {
   encrypt,
   decrypt,
   getFullKey,
   charTypes,
   getRandPwd,
+  getHash,
 }
