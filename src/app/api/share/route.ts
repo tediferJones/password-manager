@@ -35,5 +35,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  return NextResponse.json('share post route')
+  const body = await req.json();
+  console.log(body)
+  return NextResponse.json('share post route');
 }

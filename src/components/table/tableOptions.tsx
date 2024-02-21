@@ -23,20 +23,21 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '../ui/button';
 import { Table } from '@tanstack/react-table';
-import { EditVaultFunction, Entry, TableColumns } from '@/types';
+import { EditVaultFunction, Entry, UserInfo } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import capAndSplit from '@/lib/capAndSplit';
 import EntryForm from '../entryForm';
 import ViewErrors from '../viewErrors';
-import { getRandPwd } from '@/lib/security';
 import GetRandomString from '../getRandomString';
 
 export default function TableOptions({
   table,
   editVault,
+  userInfo,
 }: {
-  table: Table<TableColumns>,
+  table: Table<Entry>,
   editVault: EditVaultFunction,
+  userInfo: UserInfo,
 }) {
   const [searchBy, setSearchBy] = useState('service')
   const [searchByIsOpen, setSearchByIsOpen] = useState(false);
@@ -132,10 +133,10 @@ export default function TableOptions({
             const error = editVault({
               action: 'update',
               keys: [{
+                ...currentRow.original,
                 newService: e.currentTarget.service.value,
                 userId: e.currentTarget.userId.value,
                 password: e.currentTarget.password.value,
-                service: currentRow.original.service
               }],
             })
             error ? setUpdateErrors([error]) : setNextEntry();
@@ -188,6 +189,8 @@ export default function TableOptions({
                 service: e.currentTarget.service.value,
                 userId: e.currentTarget.userId.value,
                 password: e.currentTarget.password.value,
+                sharedWith: [],
+                owner: userInfo.username,
               }],
             })
             error ? setAddErrors([error]) : setAddIsOpen(false);

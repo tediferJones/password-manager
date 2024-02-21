@@ -20,7 +20,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
-import { EditVaultFunction, TableColumns } from '@/types';
+import { EditVaultFunction, Entry } from '@/types';
 import EntryForm from '../entryForm';
 import ViewErrors from '../viewErrors';
 import GetRandomString from '../getRandomString';
@@ -28,7 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 
-export default function RowActions({ row, editVault }: { row: Row<TableColumns>, editVault: EditVaultFunction }) {
+export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const [editIsOpen, setEditIsOpen] = useState(false);
@@ -38,8 +38,22 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
 
   const [shareIsOpen, setShareIsOpen] = useState(false);
+  const [shareWith, setShareWith] = useState('');
+  const [recipientExists, setRecipientExists] = useState(false);
 
   useEffect(() => setEditErrors([]), [editIsOpen])
+
+  useEffect(() => {
+    let delay: any;
+    if (shareWith) {
+      delay = setTimeout(async () => {
+        setRecipientExists(
+          (await fetch(`/api/users/${shareWith}`).then(res => res.json())).userExists
+        )
+      }, 100)
+    }
+    return () => clearTimeout(delay)
+  }, [shareWith])
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -81,10 +95,10 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
             const error = editVault({
               action: 'update',
               keys: [{
+                ...row.original,
                 newService: e.currentTarget.service.value,
                 userId: e.currentTarget.userId.value,
                 password: e.currentTarget.password.value,
-                service: row.original.service
               }],
             })
             error ? setEditErrors([error]) : setEditIsOpen(false);
@@ -142,18 +156,19 @@ export default function RowActions({ row, editVault }: { row: Row<TableColumns>,
           <form className='grid gap-4 py-4' onSubmit={(e) => {
             e.preventDefault();
             console.log(e.currentTarget.recipient.value)
+            console.log(row.original)
+            fetch('/api/share', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({})
+            })
           }}>
             <div className='grid grid-cols-4 items-center gap-4'>
               <Label htmlFor='recipient' className='text-center'>Recipient</Label>
-              <Input id='recipient' className='col-span-3 border-2' required
-                onChange={async (e) => {
-                  const { value, style } = e.currentTarget;
-                  style.borderWidth = value ? '2px' : '0px'
-                  style.borderColor = (await fetch(`/api/users/${value}`)).status === 200 ?
-                    '#22C55E' : '#EF4444'
-                  // '#EF4444': red-500
-                  // '#22C55E': green-500
-                }}
+              <Input className={`col-span-3 border-2 ${!shareWith ? '' : recipientExists ? 'border-green-500' : 'border-red-500'}`} 
+                id='recipient'
+                required
+                onChange={(e) => setShareWith(e.currentTarget.value)}
               />
             </div>
             <DialogFooter>

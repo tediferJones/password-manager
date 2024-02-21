@@ -21,17 +21,28 @@ import { Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { useEffect, useRef, useState } from "react";
 import PasswordForm from "./passwordForm";
-import { UserInfo} from "@/types";
+import { UserInfo, VaultInfo} from "@/types";
 import { decrypt, getFullKey } from "@/lib/security";
 import ViewErrors from "./viewErrors";
 import GetRandomString from "./getRandomString";
 
-export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserInfo, setFullKey: Function }) {
+export default function UserSettings({
+  userInfo,
+  setFullKey,
+  vaultData,
+  setVaultData,
+}: {
+  userInfo: UserInfo,
+  setFullKey: Function,
+  vaultData: VaultInfo,
+  setVaultData: Function,
+}) {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const [resetIsOpen, setResetIsOpen] = useState(false);
   const [errorMsgs, setErrorMsgs] = useState<string[]>([])
   const [confirmIsOpen, setConfirmIsOpen] = useState(false);
   const form = useRef<HTMLFormElement>(null);
+  const vaultImport = useRef<HTMLInputElement>(null);
 
   useEffect(() => setErrorMsgs([]), [menuIsOpen])
 
@@ -50,8 +61,44 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
       <DropdownMenuContent>
         <DropdownMenuLabel>Settings</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Export Vault</DropdownMenuItem>
-        <DropdownMenuItem>Import Vault</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          console.log('vault data', vaultData)
+        }} asChild>
+          <a href={URL.createObjectURL(new File(JSON.stringify(vaultData, null, 2).split(''), 'tempFileName'))}
+            download='exported-vault.json'
+          >Export Vault</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            console.log('trigger file upload')
+            vaultImport.current?.click();
+          }}
+        >
+          Import Vault
+          <input ref={vaultImport}
+            className='hidden'
+            type='file'
+            id='uploadFile'
+            accept='application/json'
+            onChange={async (e) => {
+              const target = e.currentTarget;
+              if (target.files?.length) {
+                const test: VaultInfo = JSON.parse(await target.files[0].text());
+                setVaultData(test)
+                // const fixed = Object.keys(test).reduce((fixed, entryKey) => {
+                //   fixed[entryKey] = {
+                //     ...test[entryKey],
+                //   }
+                //   return fixed
+                // }, {} as VaultInfo)
+                // console.log(fixed)
+                // setVaultData(fixed)
+              }
+              target.value = '';
+            }}
+          />
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setResetIsOpen(true)}
         >Change Password</DropdownMenuItem>
@@ -82,7 +129,6 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
             if (formData.oldPassword === formData.password) return setErrorMsgs(['New password is the same as old password'])
             const oldKey = await getFullKey(formData.oldPassword, userInfo.salt)
 
-            // let decryptResult;
             try {
               await decrypt(userInfo.vault, oldKey, userInfo.iv) 
             } catch {
@@ -90,11 +136,6 @@ export default function UserSettings({ userInfo, setFullKey }: { userInfo: UserI
               return;
             }
             setConfirmIsOpen(true);
-
-            // const newKey = await getFullKey(formData.password, userInfo.salt)
-            // setFullKey(newKey)
-            // form.current?.reset();
-            // setResetIsOpen(false);
           }}>
             <PasswordForm confirmMatch={confirmMatch} match={true} confirmOld={true} />
             <DialogFooter>

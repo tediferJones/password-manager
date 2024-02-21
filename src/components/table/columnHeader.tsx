@@ -1,9 +1,9 @@
-import { TableColumns } from "@/types";
+import { Entry } from "@/types";
 import { Column } from "@tanstack/react-table";
 import { ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
 import capAndSplit from "@/lib/capAndSplit";
 
-export default function ColumnHeader({ column }: { column: Column<TableColumns, unknown> }) {
+export default function ColumnHeader({ column }: { column: Column<Entry, unknown> }) {
   const sortDir= column.getIsSorted();
   return (
     <div className='flex justify-between items-center w-full sm:flex-row flex-col'>

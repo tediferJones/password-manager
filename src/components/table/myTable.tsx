@@ -20,10 +20,10 @@ import {
 
 import { useState } from 'react';
 import TableOptions from './tableOptions';
-import { EditVaultFunction, Entry } from '@/types';
+import { EditVaultFunction, Entry, UserInfo } from '@/types';
 import getColumnDefs from './columns';
 
-export default function MyTable({ data, editVault, }: { data: Entry[], editVault: EditVaultFunction }) {
+export default function MyTable({ data, editVault, userInfo }: { data: Entry[], editVault: EditVaultFunction, userInfo: UserInfo }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -55,7 +55,7 @@ export default function MyTable({ data, editVault, }: { data: Entry[], editVault
 
   return (
     <div className='rounded-md border'>
-      <TableOptions table={table} editVault={editVault} />
+      <TableOptions {...{ table, editVault, userInfo }} />
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

@@ -26,10 +26,17 @@ import { NextResponse } from "next/server";
 
 // This should probably just return { exists: true | false }, this way we dont get all these 404 errors in the web console
 export async function GET(req: Request, { params }: { params: { username: string } }) {
-  if (params.username && await db.select().from(users).where(eq(users.username, params.username)).get()) {
-    // const result = await db.select().from(users).where(eq(users.username, params.username)).get()
-    // console.log(result)
-    return NextResponse.json({ exists: true })
-  }
-  return NextResponse.json({ exists: false }, { status: 404 })
+  const userExists = params.username && (
+    await db.select()
+    .from(users)
+    .where(eq(users.username, params.username))
+    .get()
+  )
+  return NextResponse.json({ userExists })
+  // if (params.username && await db.select().from(users).where(eq(users.username, params.username)).get()) {
+  //   // const result = await db.select().from(users).where(eq(users.username, params.username)).get()
+  //   // console.log(result)
+  //   return NextResponse.json({ exists: true })
+  // }
+  // return NextResponse.json({ exists: false }, { status: 404 })
 }

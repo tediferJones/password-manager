@@ -1,4 +1,4 @@
-import { EditVaultFunction, TableColumns } from "@/types";
+import { EditVaultFunction, Entry } from "@/types";
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "../ui/checkbox";
 import ColumnHeader from "./columnHeader";
@@ -66,5 +66,5 @@ export default function getColumnDefs(editVault: EditVaultFunction) {
       enableHiding: false,
       cell: ({ row }) => <RowActions row={row} editVault={editVault} />
     },
-  ] as ColumnDef<TableColumns>[] 
+  ] as ColumnDef<Entry>[] 
 }
