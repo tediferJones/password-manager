@@ -20,13 +20,14 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
-import { EditVaultFunction, Entry } from '@/types';
+import { EditVaultFunction, Entry, Share } from '@/types';
 import EntryForm from '../entryForm';
 import ViewErrors from '../viewErrors';
 import GetRandomString from '../getRandomString';
 import { Button } from '@/components/ui/button';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
 
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +39,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
 
   const [shareIsOpen, setShareIsOpen] = useState(false);
+  const [shareErrors, setShareErrors] = useState<string[]>([]);
   const [shareWith, setShareWith] = useState('');
   const [recipientExists, setRecipientExists] = useState(false);
 
@@ -47,8 +49,11 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
     let delay: any;
     if (shareWith) {
       delay = setTimeout(async () => {
+        setShareErrors([]);
+        const alreadyExists = row.original.sharedWith.includes(shareWith)
+        if (alreadyExists) setShareErrors(['already shared with']);
         setRecipientExists(
-          (await fetch(`/api/users/${shareWith}`).then(res => res.json())).userExists
+          !alreadyExists && (await fetch(`/api/users/${shareWith}`).then(res => res.json())).userExists 
         )
       }, 100)
     }
@@ -94,7 +99,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
             setEditErrors([]);
             const error = editVault({
               action: 'update',
-              keys: [{
+              toChange: [{
                 ...row.original,
                 newService: e.currentTarget.service.value,
                 userId: e.currentTarget.userId.value,
@@ -132,7 +137,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           <span className='text-center'>{row.original.service}</span>
           <form className='grid gap-4 py-4' onSubmit={(e) => {
             e.preventDefault();
-            editVault({ action: 'remove', keys: [row.original] })
+            editVault({ action: 'remove', toChange: [row.original] })
           }}>
             <DialogFooter>
               <DialogClose asChild>
@@ -153,16 +158,53 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
             Are you sure you want to share this entry?
           </DialogDescription>
           <span className='text-center'>{row.original.service}</span>
-          <form className='grid gap-4 py-4' onSubmit={(e) => {
+          <form className='grid gap-4 py-4' onSubmit={async (e) => {
             e.preventDefault();
-            console.log(e.currentTarget.recipient.value)
-            console.log(row.original)
-            fetch('/api/share', {
+            const recipient = e.currentTarget.recipient.value;
+
+            if (row.original.sharedWith.includes(recipient)) {
+              console.log('already shared with')
+              return
+            }
+
+            if (!recipientExists) {
+              console.log('user does not exist')
+              return
+            }
+
+            const newEntry: Entry = {
+              ...row.original,
+              sharedWith: row.original.sharedWith.concat(recipient)
+            }
+
+            const salt = getRandBase64('salt');
+            const iv = getRandBase64('iv');
+            const share: Share = {
+              recipient: await getHash(recipient),
+              salt,
+              iv,
+              sharedEntry: await encrypt(
+                JSON.stringify(newEntry),
+                await getFullKey(recipient, salt),
+                iv,
+              ),
+            }
+            const res = await fetch('/api/share', {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({})
+              body: JSON.stringify(share)
             })
+            if (res.status === 200) {
+              editVault({
+                action: 'update',
+                toChange: [newEntry]
+              })
+            } else {
+              throw Error('failed to share entry')
+            }
           }}>
+            <div>{JSON.stringify(row.original.sharedWith)}</div>
+            <ViewErrors errors={shareErrors} name='shareErrors' />
             <div className='grid grid-cols-4 items-center gap-4'>
               <Label htmlFor='recipient' className='text-center'>Recipient</Label>
               <Input className={`col-span-3 border-2 ${!shareWith ? '' : recipientExists ? 'border-green-500' : 'border-red-500'}`} 

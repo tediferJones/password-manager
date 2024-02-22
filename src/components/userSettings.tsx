@@ -21,7 +21,7 @@ import { Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { useEffect, useRef, useState } from "react";
 import PasswordForm from "./passwordForm";
-import { UserInfo, VaultInfo} from "@/types";
+import { Entry, UserInfo } from "@/types";
 import { decrypt, getFullKey } from "@/lib/security";
 import ViewErrors from "./viewErrors";
 import GetRandomString from "./getRandomString";
@@ -29,13 +29,13 @@ import GetRandomString from "./getRandomString";
 export default function UserSettings({
   userInfo,
   setFullKey,
-  vaultData,
-  setVaultData,
+  vault,
+  setVault,
 }: {
   userInfo: UserInfo,
   setFullKey: Function,
-  vaultData: VaultInfo,
-  setVaultData: Function,
+  vault: Entry[],
+  setVault: Function,
 }) {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const [resetIsOpen, setResetIsOpen] = useState(false);
@@ -62,9 +62,9 @@ export default function UserSettings({
         <DropdownMenuLabel>Settings</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => {
-          console.log('vault data', vaultData)
+          console.log('vault data', vault)
         }} asChild>
-          <a href={URL.createObjectURL(new File(JSON.stringify(vaultData, null, 2).split(''), 'tempFileName'))}
+          <a href={URL.createObjectURL(new File(JSON.stringify(vault, null, 2).split(''), 'tempFileName'))}
             download='exported-vault.json'
           >Export Vault</a>
         </DropdownMenuItem>
@@ -84,16 +84,16 @@ export default function UserSettings({
             onChange={async (e) => {
               const target = e.currentTarget;
               if (target.files?.length) {
-                const test: VaultInfo = JSON.parse(await target.files[0].text());
-                setVaultData(test)
+                const test: Entry[] = JSON.parse(await target.files[0].text());
+                setVault(test)
                 // const fixed = Object.keys(test).reduce((fixed, entryKey) => {
                 //   fixed[entryKey] = {
                 //     ...test[entryKey],
                 //   }
                 //   return fixed
-                // }, {} as VaultInfo)
+                // }, {} as Entry[])
                 // console.log(fixed)
-                // setVaultData(fixed)
+                // setVault(fixed)
               }
               target.value = '';
             }}

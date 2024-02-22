@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import GetPassword from '@/components/getPassword';
 import MyTable from '@/components/table/myTable';
 import UserSettings from '@/components/userSettings';
-import { encrypt, getFullKey } from '@/lib/security';
-import { EditVaultParams, Entry, UserInfo, VaultInfo } from '@/types';
+import { encrypt, getRandBase64 } from '@/lib/security';
+import { EditVaultParams, Entry, UserInfo } from '@/types';
+import { vaultActions } from '@/lib/vaultActions';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -57,11 +58,18 @@ import { EditVaultParams, Entry, UserInfo, VaultInfo } from '@/types';
 //  - This will help simplify rowActions, userSettings and tableOptions components
 //  - Create src/components/subcomponents
 //    - EntryForm and PasswordForm belong in here
+// Add more safeties to share.
+//  - Shouldn't be able to share or update an entry that you are not the owner of
+//  - Should be able to remove users from share list
+//    - This could be done in the share dialog
+//    - Or we could try to implement a sub menu in the rowAction dropdown
+//  - Add some kind of indicator for how many users this entry is shared with
+//    - Could be shown in the rowActions drop down like so Share (15)
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
-  const [vaultData, setVaultData] = useState<VaultInfo>();
+  const [vault, setVault]= useState<Entry[]>();
 
   useEffect(() => {
     (async () => {
@@ -76,18 +84,20 @@ export default function Home() {
         setUserInfo({
           username: userInfo.username,
           vault: userInfo.vault || '',
-          iv: userInfo.iv || crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
-          salt: userInfo.salt || crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
+          iv: userInfo.iv || getRandBase64('iv'), // crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
+          salt: userInfo.salt || getRandBase64('salt'), // crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
         })
-      } else if (vaultData && fullKey) {
+      } else if (vault && fullKey) {
         console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
         console.log('UPDATING DATA')
         console.log(userInfo)
-        const newIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64');
+        // const newIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64');
+        const newIv = getRandBase64('iv')
         const newUserInfo = {
           ...userInfo,
           iv: newIv,
-          vault: await encrypt(JSON.stringify(vaultData), fullKey, newIv),
+          // vault: await encrypt(JSON.stringify(vaultData), fullKey, newIv),
+          vault: await encrypt(JSON.stringify(vault), fullKey, newIv),
         }
         fetch('/api/vault', {
           method: 'POST',
@@ -99,57 +109,25 @@ export default function Home() {
         setUserInfo(newUserInfo)
       } 
     })();
-  }, [vaultData, fullKey])
+  }, [vault, fullKey])
 
-  function editVault({ action, keys }: EditVaultParams): string | undefined {
-    const actions = {
-      add: (vaultData: VaultInfo, keys: Entry[]) => {
-        return keys.reduce((newObj, entry) => {
-          console.log('adding', entry)
-          if (!Object.keys(vaultData).includes(entry.service)) {
-            return {
-              ...newObj,
-              [entry.service]: entry
-            }
-          }
-          console.log('ENTRY ALREADY EXISTS')
-          return newObj;
-        }, vaultData)
-      },
-      remove: (vaultData: VaultInfo, keys: Entry[]) => {
-        return keys.reduce((newObj, key) => {
-          return (({ [key.service]: deletedKey, ...rest }) => rest)(newObj)
-        }, vaultData)
-      },
-      update: (vaultData: VaultInfo, keys: Entry[]) => {
-        // If the update command is used, keys should have both service and newService
-        // service is the name of the original, newService is the updated name
-        return actions.add(
-          actions.remove(vaultData, keys),
-          keys.filter(entry => entry.newService).map(({ newService, ...rest }) => {
-            return { ...rest, service: newService, }
-          }) as Entry[]
-        );
-      }
+  function editVault({ action, toChange }: EditVaultParams): string | undefined {
+    if (!vault) return
+    // Check for existing service names before we modify vault
+
+    const services = vault.map(entry => entry.service);
+    if (action === 'add' && toChange.some(key => services.includes(key.service))) {
+      console.log('found error in editVault')
+      return 'Service name already exists'
     }
 
-    if (vaultData) {
-      const services = Object.keys(vaultData);
-      if (action === 'add' && keys.some(key => services.includes(key.service))) {
-        console.log('found error in editVault')
-        return 'Service name already exists'
-      }
-
-      if (action === 'update') {
-        if (keys.some(key => key.newService && (key.service !== key.newService) && services.includes(key.newService))) {
-          console.log('Prevented update cuz new name already exists')
-          return 'Service name already exists'
-        }
-      }
-
-      // Check for existing service names before we modify vault
-      setVaultData(actions[action](vaultData, keys))
+    if (action === 'update' && toChange.some(key => key.newService && (key.service !== key?.newService) && services.includes(key.newService))) {
+      console.log('Prevented update cuz new name already exists')
+      return 'Service name already exists'
     }
+
+    console.log('edit vault')
+    setVault(vaultActions[action](vault, toChange))
   }
 
   return (
@@ -159,7 +137,7 @@ export default function Home() {
         <div className='flex items-center gap-4'>
           {userInfo && userInfo.username ? <h1 className='text-lg'>{userInfo.username}</h1> : []}
           <UserButton />
-          {!userInfo || !vaultData ? [] : <UserSettings {...{ userInfo, setFullKey, vaultData, setVaultData }} />}
+          {!userInfo || !vault ? [] : <UserSettings {...{ userInfo, setFullKey, vault, setVault }} />}
           <ToggleTheme />
         </div>
       </div>
@@ -169,17 +147,20 @@ export default function Home() {
           Please wait
         </Button> :
         <div className='w-11/12 md:w-4/5 mx-auto pb-12'>
-          {fullKey ? [] : 
-            <GetPassword {...{fullKey, setFullKey, userInfo, setVault: setVaultData, vaultData}}/>
-          }
-          {!vaultData ? [] : 
-            <MyTable
-              data={Object.keys(vaultData).map(key => ({ ...vaultData[key], service: key, })).toReversed()} // To reversed so its in order from most recent
-              {...{ editVault, userInfo }}
-            />
-          }
+          {fullKey ? [] : <GetPassword {...{ userInfo, setFullKey, vault, setVault }} />}
+          {!vault ? [] : <MyTable data={vault.toReversed()} {...{ editVault, userInfo }} />}
         </div>
       }
     </div>
   );
 }
+// <div>
+//   <button 
+//     className='p-4 bg-red-500'
+//     onClick={() => {
+//       const arr: Entry[] = Object.keys(vault).map(key => ({ ...vault[key], service: key, }))
+//       console.log(arr)
+//       setVault(arr)
+//   }}>To array</button>
+//   {JSON.stringify(vault)}
+// </div>

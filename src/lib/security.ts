@@ -65,6 +65,16 @@ function getRandPwd(length: number, valid: string[], pwd: number[] = []): string
     )
 }
 
+function getRandBase64(type: 'salt' | 'iv') {
+  return crypto.getRandomValues(
+    Buffer.alloc({
+      salt: 32,
+      iv: 12,
+    }[type])
+  ).toString('base64')
+}
+
+
 async function getHash(str: string) {
   return Buffer.from(
     await crypto.subtle.digest('SHA-256', Buffer.from(str))
@@ -75,6 +85,7 @@ export {
   encrypt,
   decrypt,
   getFullKey,
+  getRandBase64,
   charTypes,
   getRandPwd,
   getHash,

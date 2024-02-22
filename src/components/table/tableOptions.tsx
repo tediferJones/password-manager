@@ -98,7 +98,7 @@ export default function TableOptions({
             e.preventDefault();
             editVault({
               action: 'remove',
-              keys: table.getFilteredSelectedRowModel().rows.map(row => row.original)
+              toChange: table.getFilteredSelectedRowModel().rows.map(row => row.original)
             })
             table.resetRowSelection();
           }}>
@@ -132,7 +132,7 @@ export default function TableOptions({
             setUpdateErrors([]);
             const error = editVault({
               action: 'update',
-              keys: [{
+              toChange: [{
                 ...currentRow.original,
                 newService: e.currentTarget.service.value,
                 userId: e.currentTarget.userId.value,
@@ -185,7 +185,7 @@ export default function TableOptions({
             setAddErrors([]);
             const error = editVault({
               action: 'add',
-              keys: [{
+              toChange: [{
                 service: e.currentTarget.service.value,
                 userId: e.currentTarget.userId.value,
                 password: e.currentTarget.password.value,

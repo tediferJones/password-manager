@@ -15,6 +15,8 @@ export const users = sqliteTable('users', {
 export const share = sqliteTable('share', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   recipient: text('recipient').notNull(),
+  salt: text('salt').notNull().unique(),
+  iv: text('iv').notNull(),
   sharedEntry: text('sharedEntry').notNull(),
 })
 

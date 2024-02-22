@@ -6,6 +6,13 @@ interface UserInfo {
   iv: string,
 }
 
+interface Share {
+  recipient: string,
+  salt: string,
+  iv: string,
+  sharedEntry: string,
+}
+
 interface Entry {
   service: string,
   userId: string,
@@ -15,21 +22,17 @@ interface Entry {
   newService?: string,
 }
 
-interface VaultInfo {
-  [key: string]: Entry
-}
-
 interface EditVaultParams {
   action: 'add' | 'remove' | 'update',
-  keys: Entry[]
+  toChange: Entry[]
 }
 
-type EditVaultFunction = ({ action, keys }: EditVaultParams) => string | undefined;
+type EditVaultFunction = ({ action, toChange }: EditVaultParams) => string | undefined;
 
 export type {
+  Share,
   UserInfo,
   Entry,
-  VaultInfo,
   EditVaultParams,
   EditVaultFunction,
 }
