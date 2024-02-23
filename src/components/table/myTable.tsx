@@ -19,11 +19,19 @@ import {
 } from '@/components/ui/table'
 
 import { useState } from 'react';
-import TableOptions from './tableOptions';
+import TableOptions from '@/components/table/tableOptions';
+import getColumnDefs from '@/components/table/columns';
 import { EditVaultFunction, Entry, UserInfo } from '@/types';
-import getColumnDefs from './columns';
 
-export default function MyTable({ data, editVault, userInfo }: { data: Entry[], editVault: EditVaultFunction, userInfo: UserInfo }) {
+export default function MyTable({ 
+  data,
+  editVault,
+  userInfo,
+}: {
+  data: Entry[],
+  editVault: EditVaultFunction,
+  userInfo: UserInfo
+}) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})

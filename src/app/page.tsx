@@ -11,7 +11,7 @@ import GetPassword from '@/components/getPassword';
 import MyTable from '@/components/table/myTable';
 import UserSettings from '@/components/userSettings';
 import { encrypt, getRandBase64 } from '@/lib/security';
-import { EditVaultParams, Entry, UserInfo } from '@/types';
+import { EditVaultParams, Entry, Share, UserInfo } from '@/types';
 import { vaultActions } from '@/lib/vaultActions';
 
 // Encryption key can be gotten by using the getFullKey function
@@ -65,11 +65,15 @@ import { vaultActions } from '@/lib/vaultActions';
 //    - Or we could try to implement a sub menu in the rowAction dropdown
 //  - Add some kind of indicator for how many users this entry is shared with
 //    - Could be shown in the rowActions drop down like so Share (15)
+// Create subcomponents directory
+// Due to the way we share entries, usernames are now considered sensitive data
+//  - Thus we should change the way vaults are stored in the DB so that username is a hash of the current user's username
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
   const [vault, setVault]= useState<Entry[]>();
+  // const [pendingShares, setPendingShares] = useState<Share[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -78,25 +82,20 @@ export default function Home() {
         const userInfo: UserInfo = await res.json();
         // console.log('Fetched user info', userInfo)
 
-        const newShares = await fetch('/api/share').then(res => res.json())
-        console.log('newShares', newShares)
-
         setUserInfo({
           username: userInfo.username,
           vault: userInfo.vault || '',
-          iv: userInfo.iv || getRandBase64('iv'), // crypto.getRandomValues(Buffer.alloc(12)).toString('base64'),
-          salt: userInfo.salt || getRandBase64('salt'), // crypto.getRandomValues(Buffer.alloc(32)).toString('base64'),
+          iv: userInfo.iv || getRandBase64('iv'),
+          salt: userInfo.salt || getRandBase64('salt'),
         })
       } else if (vault && fullKey) {
         console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
         console.log('UPDATING DATA')
         console.log(userInfo)
-        // const newIv = crypto.getRandomValues(Buffer.alloc(12)).toString('base64');
         const newIv = getRandBase64('iv')
         const newUserInfo = {
           ...userInfo,
           iv: newIv,
-          // vault: await encrypt(JSON.stringify(vaultData), fullKey, newIv),
           vault: await encrypt(JSON.stringify(vault), fullKey, newIv),
         }
         fetch('/api/vault', {
@@ -154,13 +153,3 @@ export default function Home() {
     </div>
   );
 }
-// <div>
-//   <button 
-//     className='p-4 bg-red-500'
-//     onClick={() => {
-//       const arr: Entry[] = Object.keys(vault).map(key => ({ ...vault[key], service: key, }))
-//       console.log(arr)
-//       setVault(arr)
-//   }}>To array</button>
-//   {JSON.stringify(vault)}
-// </div>

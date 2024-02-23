@@ -58,7 +58,7 @@ export default function GetPassword({
           const fullKey = await getFullKey(e.currentTarget.password.value, userInfo.salt);
           let decryptedVault;
           try {
-            decryptedVault = userInfo.vault ? JSON.parse(await decrypt(userInfo.vault, fullKey, userInfo.iv)) : {};
+            decryptedVault = userInfo.vault ? JSON.parse(await decrypt(userInfo.vault, fullKey, userInfo.iv)) : [];
           } catch {
             setErrorMsgs(['Password is not correct'])
             return;

@@ -19,8 +19,9 @@ export const vaultActions = {
     return vaultActions.add(
       vaultActions.remove(vault, toChange),
       toChange.map(entry => {
-        if (!entry.newService) throw Error('failed to update, no newService found')
-        return { ...entry, service: entry.newService }
+        console.log(entry)
+        // if (!entry.newService) throw Error('failed to update, no newService found')
+        return { ...entry, service: entry.newService || entry.service }
       })
     )
   },
