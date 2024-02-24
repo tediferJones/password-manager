@@ -12,13 +12,16 @@ import {
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import EntryForm from '@/components/entryForm'
+import ViewErrors from '@/components/viewErrors'
 import { decrypt, getFullKey } from '@/lib/security'
 import { EditVaultFunction, Entry, Share, UserInfo } from '@/types'
 
 export default function PendingShares({ userInfo, editVault }: { userInfo: UserInfo, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
   const [pendingShares, setPendingShares] = useState<Share[]>([]);
-  const [nextEntry, setNextEntry] = useState<Entry>();
+  const [entry, setEntry] = useState<Entry>();
+  const [shareErrors, setShareErrors] = useState<string[]>([]);
+  const [skipOffset, setSkipOffset] = useState(0);
   const form = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -26,26 +29,36 @@ export default function PendingShares({ userInfo, editVault }: { userInfo: UserI
       const res = await fetch('/api/share')
       const newShares: Share[] = await res.json()
       setPendingShares(newShares)
-      await setForm(newShares[0]);
     })();
-  }, [])
+  }, []);
 
-  async function setForm(share: Share) {
-    setNextEntry(
-      JSON.parse(
-        await decrypt(
-          share.sharedEntry,
-          await getFullKey(userInfo.username, share.salt),
-          share.iv,
+  useEffect(() => {
+    (async () => {
+      if (pendingShares.length <= skipOffset) {
+        return setIsOpen(false)
+      }
+      const share = pendingShares[skipOffset]
+      setEntry(
+        JSON.parse(
+          await decrypt(
+            share.sharedEntry,
+            await getFullKey(userInfo.username, share.salt),
+            share.iv,
+          )
         )
-      ) as Entry
-    )
-  }
+      )
+    })();
+  }, [pendingShares, skipOffset]);
+
+  useEffect(() => {
+    setSkipOffset(0);
+    setShareErrors([]);
+  }, [isOpen])
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button disabled={!pendingShares.length}>
           Pending ({pendingShares.length})
         </Button>
       </DialogTrigger>
@@ -53,26 +66,31 @@ export default function PendingShares({ userInfo, editVault }: { userInfo: UserI
         <DialogHeader>
           <DialogTitle>Pending Shares</DialogTitle>
         </DialogHeader>
-        <form className='grid gap-4 py-4' ref={form} onSubmit={async (e) => {
-          e.preventDefault();
-          console.log(pendingShares)
-          setPendingShares(pendingShares.slice(1))
-          if (pendingShares.length > 1) {
-            setForm(pendingShares[1])
-          } else {
-            setIsOpen(false)
-            form.current?.reset();
-          }
-        }}>
-          <EntryForm entry={nextEntry} />
+        <form className='grid gap-4 py-4'
+          onSubmit={async (e) => {
+            e.preventDefault();
+            console.log(entry)
+            if (!entry) throw Error('No entry found')
+            const errors = editVault({
+              action: 'add',
+              toChange: [{
+                ...entry,
+                service: e.currentTarget.service.value,
+              }]
+            })
+            errors ? setShareErrors([errors]) 
+              : setPendingShares(pendingShares.toSpliced(skipOffset, 1))
+          }}
+        >
+          <ViewErrors errors={shareErrors} name='shareErrors'/>
+          <EntryForm entry={entry} shared key={JSON.stringify(entry)} />
           <DialogFooter>
             <DialogClose asChild>
               <Button variant='secondary'>Close</Button>
             </DialogClose>
             <Button variant='secondary'
-              onClick={() => {
-
-              }}
+              type='button'
+              onClick={() => setSkipOffset(skipOffset + 1)}
             >Skip</Button>
             <Button type='submit'>Add</Button>
           </DialogFooter>

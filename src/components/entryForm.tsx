@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Entry } from "@/types";
 import { Eye, EyeOff } from "lucide-react";
 
-export default function EntryForm({ entry }: { entry?: Entry }) {
+export default function EntryForm({ entry, shared }: { entry?: Entry, shared?: boolean }) {
   const [showPwd, setShowPwd] = useState(false);
   return (
     <>
@@ -32,6 +32,7 @@ export default function EntryForm({ entry }: { entry?: Entry }) {
           required
           maxLength={64}
           defaultValue={entry ? entry.userId : ''}
+          disabled={shared}
         />
       </div>
       <div className='grid grid-cols-4 items-center gap-4'>
@@ -46,6 +47,7 @@ export default function EntryForm({ entry }: { entry?: Entry }) {
             maxLength={64}
             type={showPwd ? 'text' : 'password'}
             defaultValue={entry ? entry.password : ''}
+            disabled={shared}
           />
           <button type='button' onClick={() => setShowPwd(!showPwd)}>
             {showPwd ? <EyeOff className='h-4 w-4 mx-4' /> : 

@@ -13,6 +13,7 @@ import UserSettings from '@/components/userSettings';
 import { encrypt, getRandBase64 } from '@/lib/security';
 import { EditVaultParams, Entry, Share, UserInfo } from '@/types';
 import { vaultActions } from '@/lib/vaultActions';
+import CustomDialog from '@/components/customDialog';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -68,6 +69,10 @@ import { vaultActions } from '@/lib/vaultActions';
 // Create subcomponents directory
 // Due to the way we share entries, usernames are now considered sensitive data
 //  - Thus we should change the way vaults are stored in the DB so that username is a hash of the current user's username
+// How do we want to handle shared entries with the same service name?
+//  - We could instead make the unique identifier serviceName + owner
+//    - This would prevent overlap entirely, while mainting the basic idea
+//      that one user cant have multiple entries with the same service name
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -129,6 +134,16 @@ export default function Home() {
     setVault(vaultActions[action](vault, toChange))
   }
 
+  const testProps = {
+    // seperate: true,
+    title: 'testing',
+    triggerText: 'btn',
+    formType: 'entry',
+    submitFunc: (e: any) => console.log(e)
+  };
+  // const test = CustomDialog(testProps)
+  const test = <CustomDialog {...testProps} />
+  // console.log(test[0], test[1])
   return (
     <div>
       <div className='p-8 flex justify-between items-center flex-col sm:flex-row border-b-[1px] mb-8'>
@@ -140,6 +155,7 @@ export default function Home() {
           <ToggleTheme />
         </div>
       </div>
+      {test}
       {!userInfo ? 
         <Button className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none'>
           <Loader2 className='mr-2 h-4 w-4 animate-spin' />

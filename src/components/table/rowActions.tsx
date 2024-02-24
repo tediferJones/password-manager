@@ -15,6 +15,7 @@ import UpdateSingle from '@/components/dialogs/updateSingle';
 import DeleteSingle from '@/components/dialogs/deleteSingle';
 import ShareSingle from '@/components/dialogs/shareSingle';
 import { EditVaultFunction, Entry } from '@/types';
+import CustomDialog from '../customDialog';
 
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +23,16 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
   const [editTrigger, editContent] = UpdateSingle(editVault, row);
   const [deleteTrigger, deleteContent] = DeleteSingle(editVault, row);
   const [shareTrigger, shareContent] = ShareSingle(editVault, row);
+  const [testIsOpen, setTestIsOpen] = useState(false);
+  const [testTrigger, testContent] = CustomDialog({
+    triggerText: 'test dialog',
+    title: 'This is a test',
+    formType: 'password',
+    seperate: true,
+    isOpen: testIsOpen,
+    setIsOpen: setTestIsOpen,
+    submitFunc: (e) => console.log(e),
+  }) as any[]
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -45,10 +56,19 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         {deleteTrigger}
         <DropdownMenuSeparator />
         {shareTrigger}
+        <DropdownMenuItem onClick={() => {
+          console.log(row.original)
+        }}>
+          Details
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTestIsOpen(!testIsOpen)} asChild>
+          {testTrigger}
+        </DropdownMenuItem>
       </DropdownMenuContent>
       {editContent}
       {deleteContent}
       {shareContent}
+      {testContent}
     </DropdownMenu>
   )
 }
