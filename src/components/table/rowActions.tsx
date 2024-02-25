@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,19 +20,15 @@ import CustomDialog from '../customDialog';
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const [editTrigger, editContent] = UpdateSingle(editVault, row);
+  // const [editTrigger, editContent] = UpdateSingle(editVault, row);
   const [deleteTrigger, deleteContent] = DeleteSingle(editVault, row);
   const [shareTrigger, shareContent] = ShareSingle(editVault, row);
-  const [testIsOpen, setTestIsOpen] = useState(false);
-  const [testTrigger, testContent] = CustomDialog({
-    triggerText: 'test dialog',
-    title: 'This is a test',
-    formType: 'password',
-    seperate: true,
-    isOpen: testIsOpen,
-    setIsOpen: setTestIsOpen,
-    submitFunc: (e) => console.log(e),
-  }) as any[]
+
+  const [editIsOpen, setEditIsOpen] = useState(false);
+  const [shareIsOpen, setShareIsOpen] = useState(false);
+  // const [editErrors, setEditErrors] = useState<string[]>([]);
+  // const editForm = useRef<HTMLFormElement>(null);
+  // useEffect(() => setEditErrors([]), [editIsOpen]);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -51,24 +47,72 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           Copy Password
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {/*
         {editTrigger}
+        */}
+        <DropdownMenuItem onSelect={() => setEditIsOpen(!editIsOpen)}>
+          Update 2.0
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         {deleteTrigger}
         <DropdownMenuSeparator />
         {shareTrigger}
+        <DropdownMenuItem onSelect={() => setShareIsOpen(!shareIsOpen)}>
+          Share 2.0
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => {
           console.log(row.original)
         }}>
           Details
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setTestIsOpen(!testIsOpen)} asChild>
-          {testTrigger}
-        </DropdownMenuItem>
       </DropdownMenuContent>
-      {editContent}
       {deleteContent}
       {shareContent}
-      {testContent}
+      {/*
+      {editContent}
+      */}
+      <CustomDialog 
+        title='Update 2.0'
+        formType='entry'
+        formData={row.original}
+        formReset
+        generateRandom
+        openState={editIsOpen}
+        setOpenState={setEditIsOpen}
+        submitText='Update'
+        submitFunc={(e, state) => {
+          e.preventDefault();
+          console.log('submitted', state)
+          state.setErrors([]);
+          const error = editVault({
+            action: 'update',
+            toChange: [{
+              ...row.original,
+              newService: e.currentTarget.service.value,
+              userId: e.currentTarget.userId.value,
+              password: e.currentTarget.password.value,
+            }],
+          })
+          error ? state.setErrors([error]) : setIsOpen(false);
+        }}
+      />
+      <CustomDialog 
+        title='Share 2.0'
+        description='Are you sure you want to share this entry?'
+        formType='share'
+        openState={shareIsOpen}
+        setOpenState={setShareIsOpen}
+        submitText='Share'
+        submitVariant='destructive'
+        submitFunc={(e, state) => {
+          e.preventDefault();
+          console.log('submitted share form', e, state)
+        }}
+        localFunc={() => {
+          console.log('wow?')
+        }}
+        confirm
+      />
     </DropdownMenu>
   )
 }

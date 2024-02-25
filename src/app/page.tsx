@@ -73,6 +73,8 @@ import CustomDialog from '@/components/customDialog';
 //  - We could instead make the unique identifier serviceName + owner
 //    - This would prevent overlap entirely, while mainting the basic idea
 //      that one user cant have multiple entries with the same service name
+// ShareForm component needs a hidden checkbox
+//  - Programmatically check this checkbox based on if username exists, username is not your own username or in sharedWith
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -134,16 +136,6 @@ export default function Home() {
     setVault(vaultActions[action](vault, toChange))
   }
 
-  const testProps = {
-    // seperate: true,
-    title: 'testing',
-    triggerText: 'btn',
-    formType: 'entry',
-    submitFunc: (e: any) => console.log(e)
-  };
-  // const test = CustomDialog(testProps)
-  const test = <CustomDialog {...testProps} />
-  // console.log(test[0], test[1])
   return (
     <div>
       <div className='p-8 flex justify-between items-center flex-col sm:flex-row border-b-[1px] mb-8'>
@@ -155,7 +147,17 @@ export default function Home() {
           <ToggleTheme />
         </div>
       </div>
-      {test}
+      {/*
+      <CustomDialog  
+        title={'testing'}
+        triggerText={'btn'}
+        formType={'entry'}
+        submitFunc={(e) => {
+          e.preventDefault()
+          console.log('submited test component')
+        }}
+      />
+      */}
       {!userInfo ? 
         <Button className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none'>
           <Loader2 className='mr-2 h-4 w-4 animate-spin' />

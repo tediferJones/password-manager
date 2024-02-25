@@ -14,6 +14,7 @@ interface Share {
 }
 
 interface Entry {
+  [key: string]: string | string[] | undefined,
   service: string,
   userId: string,
   password: string,
