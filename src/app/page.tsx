@@ -73,8 +73,17 @@ import CustomDialog from '@/components/customDialog';
 //  - We could instead make the unique identifier serviceName + owner
 //    - This would prevent overlap entirely, while mainting the basic idea
 //      that one user cant have multiple entries with the same service name
-// ShareForm component needs a hidden checkbox
-//  - Programmatically check this checkbox based on if username exists, username is not your own username or in sharedWith
+// [ DONE ] ShareForm component needs a hidden checkbox
+//  - [ DONE ] Programmatically check this checkbox based on if username exists, username is not your own username or in sharedWith
+// Change password reset dialog to custom dialog
+// Move password sharing functions from share components to editVault func
+//  - only push changes when shared array changes or entry is updated
+// Also update editVault error functions
+//  - Unique ID should be a combo of service and owner
+// UserInfo and Share types are essentially the same
+//  - Think about merging these types into EncryptedData or something like that
+// Try to simplify props for CustomDialog component
+// Delete src/components/dialogs folder, these have all been replaced by CustomDialog component
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();

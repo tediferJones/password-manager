@@ -7,25 +7,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import { useEffect, useRef, useState } from 'react';
+import {  useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import UpdateSingle from '@/components/dialogs/updateSingle';
-import DeleteSingle from '@/components/dialogs/deleteSingle';
-import ShareSingle from '@/components/dialogs/shareSingle';
-import { EditVaultFunction, Entry } from '@/types';
-import CustomDialog from '../customDialog';
+// import UpdateSingle from '@/components/dialogs/updateSingle';
+// import DeleteSingle from '@/components/dialogs/deleteSingle';
+// import ShareSingle from '@/components/dialogs/shareSingle';
+import { EditVaultFunction, Entry, Share } from '@/types';
+import CustomDialog from '@/components/customDialog';
+import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
 
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
 
   // const [editTrigger, editContent] = UpdateSingle(editVault, row);
-  const [deleteTrigger, deleteContent] = DeleteSingle(editVault, row);
-  const [shareTrigger, shareContent] = ShareSingle(editVault, row);
+  // const [shareTrigger, shareContent] = ShareSingle(editVault, row);
+  // const [deleteTrigger, deleteContent] = DeleteSingle(editVault, row);
 
   const [editIsOpen, setEditIsOpen] = useState(false);
   const [shareIsOpen, setShareIsOpen] = useState(false);
+  const [deleteIsOpen, setDeleteIsOpen] = useState(false);
   // const [editErrors, setEditErrors] = useState<string[]>([]);
   // const editForm = useRef<HTMLFormElement>(null);
   // useEffect(() => setEditErrors([]), [editIsOpen]);
@@ -46,17 +48,21 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         <DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.getValue('password'))}>
           Copy Password
         </DropdownMenuItem>
+
         <DropdownMenuSeparator />
-        {/*
-        {editTrigger}
-        */}
+
         <DropdownMenuItem onSelect={() => setEditIsOpen(!editIsOpen)}>
           Update 2.0
         </DropdownMenuItem>
+
         <DropdownMenuSeparator />
-        {deleteTrigger}
+
+        <DropdownMenuItem onSelect={() => setDeleteIsOpen(!deleteIsOpen)}>
+          Delete 2.0
+        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
-        {shareTrigger}
+
         <DropdownMenuItem onSelect={() => setShareIsOpen(!shareIsOpen)}>
           Share 2.0
         </DropdownMenuItem>
@@ -66,15 +72,11 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           Details
         </DropdownMenuItem>
       </DropdownMenuContent>
-      {deleteContent}
-      {shareContent}
-      {/*
-      {editContent}
-      */}
+      
       <CustomDialog 
         title='Update 2.0'
         formType='entry'
-        formData={row.original}
+        formData={[row.original]}
         formReset
         generateRandom
         openState={editIsOpen}
@@ -97,21 +99,77 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         }}
       />
       <CustomDialog 
-        title='Share 2.0'
+        title='Delete Entry'
+        description='Are you sure you want to delete this entry?'
+        openState={deleteIsOpen}
+        setOpenState={setDeleteIsOpen}
+        formType='delete'
+        formData={[row.original]}
+        submitVariant='destructive'
+        submitText='Delete'
+        submitFunc={(e, state) => {
+          e.preventDefault();
+          editVault({ action: 'remove', toChange: [row.original] })
+        }}
+      />
+      <CustomDialog 
+        title='Share Entry 2.0'
         description='Are you sure you want to share this entry?'
         formType='share'
         openState={shareIsOpen}
         setOpenState={setShareIsOpen}
         submitText='Share'
-        submitVariant='destructive'
-        submitFunc={(e, state) => {
+        submitFunc={async (e, state) => {
           e.preventDefault();
-          console.log('submitted share form', e, state)
+          console.log('initial submit func', e, state)
+          console.log(e.currentTarget.usernameIsValid.ariaChecked)
+          const recipient = e.currentTarget.recipient.value;
+          state.setErrors([])
+
+          if (row.original.sharedWith.includes(recipient)) {
+            state.setErrors(['already shared with this user'])
+            return
+          }
+
+          if (!e.currentTarget.usernameIsValid.ariaChecked) {
+            state.setErrors(['user does not exist'])
+            return
+          }
+
+          const newEntry: Entry = {
+            ...row.original,
+            sharedWith: row.original.sharedWith.concat(recipient)
+          }
+
+          // Move pushing of shared password to db to editVault function
+          // This way, it will be easy to regulate pushing changes to db
+          // This allows us to push changes to all shared users everytime an entry is updated or shared
+          const salt = getRandBase64('salt');
+          const iv = getRandBase64('iv');
+          const share: Share = {
+            recipient: await getHash(recipient),
+            salt,
+            iv,
+            sharedEntry: await encrypt(
+              JSON.stringify(newEntry),
+              await getFullKey(recipient, salt),
+              iv,
+            ),
+          }
+          const res = await fetch('/api/share', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(share)
+          })
+          if (res.status === 200) {
+            editVault({
+              action: 'update',
+              toChange: [newEntry]
+            })
+          } else {
+            throw Error('failed to share entry')
+          }
         }}
-        localFunc={() => {
-          console.log('wow?')
-        }}
-        confirm
       />
     </DropdownMenu>
   )

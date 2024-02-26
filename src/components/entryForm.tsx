@@ -19,6 +19,7 @@ export default function EntryForm({ entry, shared }: { entry?: Entry, shared?: b
           required
           maxLength={64}
           defaultValue={entry ? entry.service : ''}
+          disabled={shared}
         />
       </div>
       <div className='grid grid-cols-4 items-center gap-4'>
