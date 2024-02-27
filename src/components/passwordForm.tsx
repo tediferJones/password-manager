@@ -6,7 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 export default function PasswordForm({
   match,
   confirmMatch,
-  confirmOld
+  confirmOld,
 }: {
   match?: boolean,
   confirmMatch: Function,
@@ -16,6 +16,7 @@ export default function PasswordForm({
   const [showOldPwd, setShowOldPwd] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [showNewPwd, setShowNewPwd] = useState(false);
+
   return (
     <>
       {!confirmOld ? [] : 
@@ -53,7 +54,8 @@ export default function PasswordForm({
             required
             type={showPwd ? 'text' : 'password'}
             onChange={() => {
-              if (match) setPasswordsMatch(!!confirmMatch());
+              console.log('trigger on change')
+              if (match) setPasswordsMatch(confirmMatch());
             }}
           />
           <button type='button' onClick={() => setShowPwd(!showPwd)}>
@@ -77,7 +79,8 @@ export default function PasswordForm({
               required
               type={showNewPwd ? 'text' : 'password'}
               onChange={() => {
-                if (match) setPasswordsMatch(!!confirmMatch());
+                console.log('trigger on change')
+                if (match) setPasswordsMatch(confirmMatch());
               }}
             />
             <button type='button' onClick={() => setShowNewPwd(!showNewPwd)}>

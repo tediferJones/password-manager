@@ -11,9 +11,8 @@ import GetPassword from '@/components/getPassword';
 import MyTable from '@/components/table/myTable';
 import UserSettings from '@/components/userSettings';
 import { encrypt, getRandBase64 } from '@/lib/security';
-import { EditVaultParams, Entry, Share, UserInfo } from '@/types';
+import { EditVaultParams, Entry, UserInfo } from '@/types';
 import { vaultActions } from '@/lib/vaultActions';
-import CustomDialog from '@/components/customDialog';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -26,10 +25,7 @@ import CustomDialog from '@/components/customDialog';
 //   - Recommended to iterate hash 2^(Current Year - 2000) times, so we want 2^24 which is 16777216
 // More Info: https://security.stackexchange.com/questions/177990/what-is-the-best-practice-to-store-private-key-salt-and-initialization-vector-i
 //
-// If we want to use phone number for login and/or OTP, you must pay for clerk pro
-//
 // What to do next:
-// Start building ui
 // Edit lib/security, all functions should take salt and iv as base64 strings
 //  - see if we can use base64 everywhere, especially for the plaintext and password
 // Salt and IV are always recycled, fix this, see notes above
@@ -46,19 +42,9 @@ import CustomDialog from '@/components/customDialog';
 // Add a 'syncing' indicator (like a red/green line)
 //  - when vault changes display 'out of sync' indicator (red)
 //  - when server returns set status based on return res status (if status === 200 then vault is in sync)
-// Re-organize getPassword props
-// Breakup tableOptions, each button should get its own component
 // Add index.tsx to src/components?
 //  - That way we can import multiple components in one line
 // Apparently we dont need to verify users in api routes, this is already taken care of by clerk
-// Convert vault to Entry[], everything revolves around the table anyways so just make it an array
-//  - Bonus: we get to use more array methods in updateVault func
-// Create a getDialog component, it should return either [trigger, dialog] or fullDialoag based on isSplit prop
-//  - This is going to be much harder than it may seem at first, think about how to handle all the goofy state vars
-//    - Will moving it to its own component really simplify anything?
-//  - This will help simplify rowActions, userSettings and tableOptions components
-//  - Create src/components/subcomponents
-//    - EntryForm and PasswordForm belong in here
 // Add more safeties to share.
 //  - Shouldn't be able to share or update an entry that you are not the owner of
 //  - Should be able to remove users from share list
@@ -66,24 +52,19 @@ import CustomDialog from '@/components/customDialog';
 //    - Or we could try to implement a sub menu in the rowAction dropdown
 //  - Add some kind of indicator for how many users this entry is shared with
 //    - Could be shown in the rowActions drop down like so Share (15)
-// Create subcomponents directory
+// Create subcomponents and form directories
 // Due to the way we share entries, usernames are now considered sensitive data
 //  - Thus we should change the way vaults are stored in the DB so that username is a hash of the current user's username
 // How do we want to handle shared entries with the same service name?
 //  - We could instead make the unique identifier serviceName + owner
 //    - This would prevent overlap entirely, while mainting the basic idea
 //      that one user cant have multiple entries with the same service name
-// [ DONE ] ShareForm component needs a hidden checkbox
-//  - [ DONE ] Programmatically check this checkbox based on if username exists, username is not your own username or in sharedWith
-// Change password reset dialog to custom dialog
 // Move password sharing functions from share components to editVault func
 //  - only push changes when shared array changes or entry is updated
 // Also update editVault error functions
 //  - Unique ID should be a combo of service and owner
 // UserInfo and Share types are essentially the same
 //  - Think about merging these types into EncryptedData or something like that
-// Try to simplify props for CustomDialog component
-// Delete src/components/dialogs folder, these have all been replaced by CustomDialog component
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -156,17 +137,6 @@ export default function Home() {
           <ToggleTheme />
         </div>
       </div>
-      {/*
-      <CustomDialog  
-        title={'testing'}
-        triggerText={'btn'}
-        formType={'entry'}
-        submitFunc={(e) => {
-          e.preventDefault()
-          console.log('submited test component')
-        }}
-      />
-      */}
       {!userInfo ? 
         <Button className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none'>
           <Loader2 className='mr-2 h-4 w-4 animate-spin' />

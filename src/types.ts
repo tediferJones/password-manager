@@ -1,3 +1,5 @@
+import { Dispatch, RefObject, SetStateAction } from "react";
+
 interface UserInfo {
   [key: string]: string,
   username: string,
@@ -30,10 +32,25 @@ interface EditVaultParams {
 
 type EditVaultFunction = ({ action, toChange }: EditVaultParams) => string | undefined;
 
+interface CustomDialogState {
+  isOpen: boolean,
+  setIsOpen: Dispatch<SetStateAction<boolean>>,
+  errors: string[],
+  setErrors: Dispatch<SetStateAction<string[]>>,
+  formRef: RefObject<HTMLFormElement>,
+  formData?: Entry[],
+  confirmIsOpen: boolean,
+  setConfirmIsOpen: Dispatch<SetStateAction<boolean>>,
+  confirmMatch: () => boolean,
+  entryOffset: number,
+  setEntryOffset: Dispatch<SetStateAction<number>>,
+}
+
 export type {
   Share,
   UserInfo,
   Entry,
   EditVaultParams,
   EditVaultFunction,
+  CustomDialogState,
 }

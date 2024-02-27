@@ -7,30 +7,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import {  useState } from 'react';
+import { useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-// import UpdateSingle from '@/components/dialogs/updateSingle';
-// import DeleteSingle from '@/components/dialogs/deleteSingle';
-// import ShareSingle from '@/components/dialogs/shareSingle';
-import { EditVaultFunction, Entry, Share } from '@/types';
 import CustomDialog from '@/components/customDialog';
+import { EditVaultFunction, Entry, Share } from '@/types';
 import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
 
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
-
-  // const [editTrigger, editContent] = UpdateSingle(editVault, row);
-  // const [shareTrigger, shareContent] = ShareSingle(editVault, row);
-  // const [deleteTrigger, deleteContent] = DeleteSingle(editVault, row);
-
   const [editIsOpen, setEditIsOpen] = useState(false);
   const [shareIsOpen, setShareIsOpen] = useState(false);
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
-  // const [editErrors, setEditErrors] = useState<string[]>([]);
-  // const editForm = useRef<HTMLFormElement>(null);
-  // useEffect(() => setEditErrors([]), [editIsOpen]);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -52,19 +41,19 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onSelect={() => setEditIsOpen(!editIsOpen)}>
-          Update 2.0
+          Update
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onSelect={() => setDeleteIsOpen(!deleteIsOpen)}>
-          Delete 2.0
+          Delete
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onSelect={() => setShareIsOpen(!shareIsOpen)}>
-          Share 2.0
+          Share
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => {
           console.log(row.original)
@@ -74,14 +63,9 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
       </DropdownMenuContent>
       
       <CustomDialog 
-        title='Update 2.0'
-        formType='entry'
+        action='update'
         formData={[row.original]}
-        formReset
-        generateRandom
-        openState={editIsOpen}
-        setOpenState={setEditIsOpen}
-        submitText='Update'
+        extOpenState={[editIsOpen, setEditIsOpen]}
         submitFunc={(e, state) => {
           e.preventDefault();
           console.log('submitted', state)
@@ -99,26 +83,19 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         }}
       />
       <CustomDialog 
-        title='Delete Entry'
         description='Are you sure you want to delete this entry?'
-        openState={deleteIsOpen}
-        setOpenState={setDeleteIsOpen}
-        formType='delete'
+        extOpenState={[deleteIsOpen, setDeleteIsOpen]}
+        action='delete'
         formData={[row.original]}
-        submitVariant='destructive'
-        submitText='Delete'
         submitFunc={(e, state) => {
           e.preventDefault();
           editVault({ action: 'remove', toChange: [row.original] })
         }}
       />
       <CustomDialog 
-        title='Share Entry 2.0'
+        action='share'
         description='Are you sure you want to share this entry?'
-        formType='share'
-        openState={shareIsOpen}
-        setOpenState={setShareIsOpen}
-        submitText='Share'
+        extOpenState={[shareIsOpen, setShareIsOpen]}
         submitFunc={async (e, state) => {
           e.preventDefault();
           console.log('initial submit func', e, state)

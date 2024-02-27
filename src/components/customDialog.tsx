@@ -13,7 +13,6 @@ import {
   Dispatch,
   FormEvent,
   MouseEvent,
-  RefObject,
   SetStateAction,
   useEffect,
   useRef,
@@ -26,125 +25,118 @@ import ViewErrors from '@/components/viewErrors';
 import EntryForm from '@/components/entryForm';
 import PasswordForm from '@/components/passwordForm';
 import ShareForm from '@/components/shareForm';
-import { Entry } from '@/types';
-
-interface State {
-  isOpen: boolean,
-  setIsOpen: Dispatch<SetStateAction<boolean>>,
-  errors: string[],
-  setErrors: Dispatch<SetStateAction<string[]>>,
-  formRef: RefObject<HTMLFormElement>,
-  confirmIsOpen: boolean,
-  setConfirmIsOpen: Dispatch<SetStateAction<boolean>>,
-}
+import { CustomDialogState, Entry } from '@/types';
+import capAndSplit from '@/lib/capAndSplit';
 
 export default function CustomDialog({
-  openState,
-  setOpenState,
-  triggerText,
-  triggerVariant,
-  disableTrigger,
-  title,
-  description,
-  formType = 'none',
-  formData,
-  formReset, // if form data is provided, we should provide form reset functions
-  disableInputs,
-  generateRandom,
-  skipFunc,
-  submitVariant,
-  submitText,
+  action,
   submitFunc,
-  localFunc,
-  // confirm,
-  confirmSubmitFunc,
+  description,
+  formData,
+  skipFunc,
+  confirmFunc,
+  extOpenState,
+  submitText,
 }: {
-    openState?: boolean,
-    setOpenState?: Dispatch<SetStateAction<boolean>>,
-    // extOpenState?: [boolean, Dispatch<SetStateAction<boolean>>]
-    triggerText?: string,
-    triggerVariant?: 'secondary' | 'outline' | 'destructive',
-    disableTrigger?: any,
-    title: string,
+    action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm'
+    submitFunc: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
     description?: string,
-    formType?: 'entry' | 'password' | 'delete' | 'share' | 'none',
     formData?: Entry[],
-    formReset?: boolean,
-    disableInputs?: boolean,
-    generateRandom?: boolean,
-    skipFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: State) => void,
-    submitVariant?:  'secondary' | 'outline' | 'destructive',
-    submitText: string,
-    submitFunc: (e: FormEvent<HTMLFormElement>, state: State) => void,
-    localFunc?: () => void,
-    // confirm?: boolean,
-    confirmSubmitFunc?: (e: FormEvent<HTMLFormElement>, state: State) => void,
+    skipFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void,
+    confirmFunc?: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
+    extOpenState?: [boolean, Dispatch<SetStateAction<boolean>>]
+    submitText?: string,
 }) {
-  const [innerIsOpen, setInnerIsOpen] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [isOpen, setIsOpen] = openState && setOpenState ? [openState, setOpenState] : [innerIsOpen, setInnerIsOpen];
+  const [entryOffset, setEntryOffset] = useState(0);
   const [confirmIsOpen, setConfirmIsOpen] = useState(false);
+  const defaultOpenState = useState(false);
+  const [isOpen, setIsOpen] = extOpenState ? extOpenState : defaultOpenState;
   const formRef = useRef<HTMLFormElement>(null);
-  const state: State = {
+
+  function confirmMatch() {
+    return !!(formRef?.current && formRef.current.password.value === formRef.current.confirm.value)
+  }
+
+  const state: CustomDialogState = {
     isOpen,
     setIsOpen,
     formRef,
+    formData,
     errors,
     setErrors,
     confirmIsOpen,
     setConfirmIsOpen,
+    confirmMatch,
+    entryOffset,
+    setEntryOffset,
   };
 
-  useEffect(() => setErrors([]), [isOpen]);
+  useEffect(() => {
+    if (!formData || action === 'delete') return;
+    if (formData.length <= entryOffset) return setIsOpen(false);
+    ['service', 'userId', 'password'].forEach(formId => {
+      if (formRef.current) {
+        formRef.current[formId].value = formData[entryOffset][formId]
+      }
+    })
+  }, [formData, entryOffset])
 
-  // (() => {
-  //   console.log('global func')
-  //   if (localFunc) localFunc()
-  // })();
+  useEffect(() => {
+    setErrors([])
+    setEntryOffset(0)
+  }, [isOpen]);
 
+  const actionTypes = {
+    reset: 'Password',
+    confirm: 'PasswordReset',
+  }
+  // @ts-ignore
+  const actionType = actionTypes[action] || (formData && formData.length > 1 ? 'Entries' : 'Entry')
+  const btnVariant = ['delete', 'reset', 'confirm'].includes(action) ? 'destructive' : 'default';
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {!triggerText? [] :
+      {extOpenState ? [] :
         <DialogTrigger asChild>
-          <Button variant={triggerVariant} disabled={disableTrigger}>
-            {triggerText}
+          <Button className='capitalize' variant={btnVariant} disabled={!(action === 'add' || formData && formData.length)}>
+            {capAndSplit(action.split('')) + (action === 'pending' && formData ? ` (${formData.length})` : '')}
           </Button>
         </DialogTrigger>
       }
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{capAndSplit(`${action+actionType} `.split(''))}</DialogTitle>
         </DialogHeader>
         {!description ? [] : 
           <DialogDescription>{description}</DialogDescription>
         }
-        <ViewErrors errors={errors} name={`${triggerText}-Errors`} />
+        <ViewErrors errors={errors} name={`${action}-Errors`} />
         <form className='grid gap-4 py-4'
           ref={formRef}
           onSubmit={(e) => submitFunc(e, state)}
         >
           {
             {
-              entry: <EntryForm entry={formData ? formData[0] : undefined} shared={disableInputs} />,
-              password: <PasswordForm confirmMatch={() => {}} />,
-              // delete: <div>A LIST OF ENTRIES TO DELETE</div>,
-              // delete: formData ? <span className='text-center'>{formData.service}</span> : [],
+              add: <EntryForm />,
+              update: <EntryForm entry={formData ? formData[0] : undefined} />,
               delete: 
-                <div className='max-h-[40vh] overflow-y-auto flex flex-col items-center'>
-                  {formData?.map(entry => {
-                    return <div key={`${entry.owner}-${entry.service}`} className='text-center'>{entry.service}</div>
-                  })}
-                </div>
+              <div className='max-h-[40vh] overflow-y-auto flex flex-col items-center'>
+                {formData?.map(entry => {
+                  return <div key={`${entry.owner}-${entry.service}`} className='text-center'>{entry.service}</div>
+                })}
+              </div>
               ,
               share: <ShareForm />,
-              none: [],
-            }[formType]
+              pending: <EntryForm entry={formData ? formData[0] : undefined} shared={true} />,
+              reset: <PasswordForm confirmMatch={confirmMatch} confirmOld match />,
+              confirm: undefined
+            }[action]
           }
           <DialogFooter>
             <DialogClose asChild>
               <Button variant='secondary' type='button'>Cancel</Button>
             </DialogClose>
-            {!formReset || !formData ? [] :
+            {!formData ? [] :
               <Button variant='secondary'
                 type='button'
                 onClick={() => {
@@ -158,7 +150,7 @@ export default function CustomDialog({
                 }}
               >Reset</Button>
             }
-            {!generateRandom ? [] :
+            {!['add', 'update', 'reset'].includes(action) ? [] :
               <GetRandomString
                 buttonText='Generate'
                 secondary
@@ -178,19 +170,18 @@ export default function CustomDialog({
                 onClick={(e) => skipFunc(e, state)}
               >Skip</Button>
             }
-            <Button type='submit' variant={submitVariant}>{submitText}</Button> 
+            <Button type='submit' variant={btnVariant}>
+              {capAndSplit((submitText || action).split(''))}
+            </Button> 
           </DialogFooter>
         </form>
-        {!confirmSubmitFunc ? [] :
+        {!confirmFunc ? [] :
           <CustomDialog 
-            title={title}
             description='This action cannot be done, please be careful'
+            action='confirm'
             submitText="Yes I'm sure"
-            triggerVariant={submitVariant}
-            submitVariant={submitVariant}
-            submitFunc={(e) => confirmSubmitFunc(e, state)}
-            openState={confirmIsOpen}
-            setOpenState={setConfirmIsOpen}
+            submitFunc={(e) => confirmFunc(e, state)}
+            extOpenState={[confirmIsOpen, setConfirmIsOpen]}
           />
         }
       </DialogContent>
