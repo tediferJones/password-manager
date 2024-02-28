@@ -10,7 +10,7 @@ import {
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRef, useState } from 'react';
-import CustomDialog from '@/components/customDialog';
+import CustomDialog from '@/components/subcomponents/customDialog';
 import { decrypt, getFullKey } from '@/lib/security';
 import { Entry, UserInfo } from '@/types';
 

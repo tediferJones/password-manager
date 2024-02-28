@@ -2,16 +2,16 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from '@/components/ui/popover'
 
-import { Button } from "./ui/button"
-import { useRef, useState } from "react";
-import { Checkbox } from "./ui/checkbox";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { charTypes, getRandPwd } from "@/lib/security";
+import { Button } from '@/components/ui/button'
+import { useRef, useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { charTypes, getRandPwd } from '@/lib/security';
 
-export default function GetRandomString({
+export default function GeneratePassword({
   buttonText,
   secondary,
   func
@@ -28,18 +28,7 @@ export default function GetRandomString({
         <Button variant={secondary ? 'secondary' : 'default'}>Generate</Button>
       </PopoverTrigger>
       <PopoverContent className='w-min'>
-        <form className='flex flex-col gap-4' ref={form} onSubmit={(e) => {
-          // e.preventDefault();
-          // const newPwd = getRandPwd(
-          //   Number(e.currentTarget.pwdLength.value),
-          //   Object.keys(charTypes).filter(charType => {
-          //     return e.currentTarget[charType].ariaChecked === 'true'
-          //   })
-          // )
-          // navigator.clipboard.writeText(newPwd)
-          // if (func) func(newPwd)
-          // setIsOpen(false)
-        }}>
+        <form className='flex flex-col gap-4' ref={form}>
           <Label htmlFor='pwdLength'>Length</Label>
           <Input type='number' min={8} max={64} defaultValue={16} id='pwdLength' />
           {Object.keys(charTypes)

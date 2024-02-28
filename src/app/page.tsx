@@ -5,14 +5,14 @@
 import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { ToggleTheme } from '@/components/toggleTheme';
+import { ToggleTheme } from '@/components/subcomponents/toggleTheme';
 import { Button } from '@/components/ui/button';
-import GetPassword from '@/components/getPassword';
+import DecryptVault from '@/components/decryptVault';
 import MyTable from '@/components/table/myTable';
-import UserSettings from '@/components/userSettings';
+import UserSettings from '@/components/subcomponents/userSettings';
 import { encrypt, getRandBase64 } from '@/lib/security';
-import { EditVaultParams, Entry, UserInfo } from '@/types';
-import { vaultActions } from '@/lib/vaultActions';
+import { Actions, EditVaultFunction, EditVaultParams, Entry, UserInfo } from '@/types';
+import { actionErrors, vaultActions } from '@/lib/vaultActions';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -52,25 +52,18 @@ import { vaultActions } from '@/lib/vaultActions';
 //    - Or we could try to implement a sub menu in the rowAction dropdown
 //  - Add some kind of indicator for how many users this entry is shared with
 //    - Could be shown in the rowActions drop down like so Share (15)
-// Create subcomponents and form directories
 // Due to the way we share entries, usernames are now considered sensitive data
 //  - Thus we should change the way vaults are stored in the DB so that username is a hash of the current user's username
-// How do we want to handle shared entries with the same service name?
-//  - We could instead make the unique identifier serviceName + owner
-//    - This would prevent overlap entirely, while mainting the basic idea
-//      that one user cant have multiple entries with the same service name
-// Move password sharing functions from share components to editVault func
-//  - only push changes when shared array changes or entry is updated
-// Also update editVault error functions
-//  - Unique ID should be a combo of service and owner
 // UserInfo and Share types are essentially the same
 //  - Think about merging these types into EncryptedData or something like that
+// There is a bug in vaultActions module
+//  - If current user is not the owner of the entry we should return an error message
+// NEED TO TEST VAULT ACTION FUNCTIONS, editVault AND ERROR HANDLING
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
   const [vault, setVault]= useState<Entry[]>();
-  // const [pendingShares, setPendingShares] = useState<Share[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -86,9 +79,10 @@ export default function Home() {
           salt: userInfo.salt || getRandBase64('salt'),
         })
       } else if (vault && fullKey) {
-        console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
-        console.log('UPDATING DATA')
-        console.log(userInfo)
+        // console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
+        // console.log('UPDATING DATA')
+        // console.log(userInfo)
+        console.log('Pushing vault to DB')
         const newIv = getRandBase64('iv')
         const newUserInfo = {
           ...userInfo,
@@ -107,23 +101,35 @@ export default function Home() {
     })();
   }, [vault, fullKey])
 
-  function editVault({ action, toChange }: EditVaultParams): string | undefined {
-    if (!vault) return
+  // function editVault({ action, toChange }: EditVaultParams): string | undefined {
+  function editVault(action: Actions, toChange: Entry[]): string | undefined {
+    if (!vault) return 'Error, no vault or userInfo found'
     // Check for existing service names before we modify vault
+    // console.log('blocking all vault updates', action, toChange)
 
-    const services = vault.map(entry => entry.service);
-    if (action === 'add' && toChange.some(key => services.includes(key.service))) {
-      console.log('found error in editVault')
-      return 'Service name already exists'
-    }
+    // const errorMsg = Object.keys(actionErrors[action]).find(errMsg => actionErrors[action][errMsg](vault, toChange));
+    const errorMsg = Object.keys(actionErrors[action]).find(errMsg => {
+      return toChange.some(entry => {
+        return actionErrors[action][errMsg](vault, entry)
+      })
+    });
+    console.log('error:', errorMsg)
+    if (errorMsg) return errorMsg;
+    setVault(vaultActions[action](vault, toChange));
 
-    if (action === 'update' && toChange.some(key => key.newService && (key.service !== key?.newService) && services.includes(key.newService))) {
-      console.log('Prevented update cuz new name already exists')
-      return 'Service name already exists'
-    }
+    // const services = vault.map(entry => entry.service);
+    // if (action === 'add' && toChange.some(key => services.includes(key.service))) {
+    //   console.log('found error in editVault')
+    //   return 'Service name already exists'
+    // }
 
-    console.log('edit vault')
-    setVault(vaultActions[action](vault, toChange))
+    // if (action === 'update' && toChange.some(key => key.newService && (key.service !== key?.newService) && services.includes(key.newService))) {
+    //   console.log('Prevented update cuz new name already exists')
+    //   return 'Service name already exists'
+    // }
+
+    // console.log('edit vault')
+    // setVault(vaultActions[action](vault, toChange))
   }
 
   return (
@@ -143,7 +149,7 @@ export default function Home() {
           Please wait
         </Button> :
         <div className='w-11/12 md:w-4/5 mx-auto pb-12'>
-          {fullKey ? [] : <GetPassword {...{ userInfo, setFullKey, vault, setVault }} />}
+          {fullKey ? [] : <DecryptVault {...{ userInfo, setFullKey, vault, setVault }} />}
           {!vault ? [] : <MyTable data={vault.toReversed()} {...{ editVault, userInfo }} />}
         </div>
       }

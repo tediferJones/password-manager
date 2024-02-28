@@ -11,10 +11,10 @@ import {
 import { useRef, useState } from 'react'
 import { UserInfo } from '@/types'
 import { decrypt, getFullKey } from '@/lib/security'
-import PasswordForm from './passwordForm'
-import GetRandomString from './getRandomString'
+import PasswordForm from '@/components/forms/passwordForm'
+import GeneratePassword from '@/components/subcomponents/generatePassword'
 
-export default function GetPassword({ 
+export default function DecryptVault({ 
   setFullKey,
   userInfo,
   setVault,
@@ -69,7 +69,7 @@ export default function GetPassword({
           <PasswordForm confirmMatch={confirmMatch} match={match} />
           <AlertDialogFooter>
             {!match ? [] : 
-              <GetRandomString
+              <GeneratePassword
                 buttonText='Generate'
                 secondary
                 func={(pwd) => {

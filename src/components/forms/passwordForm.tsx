@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { Input } from "./ui/input"
-import { Label } from "./ui/label"
-import { Eye, EyeOff } from "lucide-react";
+import { useState } from 'react';
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function PasswordForm({
   match,
@@ -54,7 +54,6 @@ export default function PasswordForm({
             required
             type={showPwd ? 'text' : 'password'}
             onChange={() => {
-              console.log('trigger on change')
               if (match) setPasswordsMatch(confirmMatch());
             }}
           />
@@ -79,7 +78,6 @@ export default function PasswordForm({
               required
               type={showNewPwd ? 'text' : 'password'}
               onChange={() => {
-                console.log('trigger on change')
                 if (match) setPasswordsMatch(confirmMatch());
               }}
             />

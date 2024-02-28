@@ -25,12 +25,24 @@ interface Entry {
   newService?: string,
 }
 
-interface EditVaultParams {
-  action: 'add' | 'remove' | 'update',
-  toChange: Entry[]
+type Actions = 'add' | 'remove' | 'update' | 'share';
+type ActionFunc = (vault: Entry[], toChange: Entry[]) => Entry[]
+type VaultActions = {
+  [key in Actions]: ActionFunc
 }
+type ActionErrors = {
+  [key in Actions]: {
+    [key: string]: (vault: Entry[], entry: Entry) => boolean
+  }
+}
+type EditVaultFunction = (action: Actions, entires: Entry[]) => string | undefined;
 
-type EditVaultFunction = ({ action, toChange }: EditVaultParams) => string | undefined;
+// type EditVaultFunction = ({ action, toChange }: EditVaultParams) => string | undefined;
+// interface EditVaultParams {
+//   // action: 'add' | 'remove' | 'update' | 'share',
+//   action: Actions,
+//   toChange: Entry[]
+// }
 
 interface CustomDialogState {
   isOpen: boolean,
@@ -44,13 +56,17 @@ interface CustomDialogState {
   confirmMatch: () => boolean,
   entryOffset: number,
   setEntryOffset: Dispatch<SetStateAction<number>>,
+  getCurrentEntry: () => Entry | undefined,
 }
 
 export type {
   Share,
   UserInfo,
   Entry,
-  EditVaultParams,
+  // EditVaultParams,
   EditVaultFunction,
   CustomDialogState,
+  Actions,
+  VaultActions,
+  ActionErrors,
 }

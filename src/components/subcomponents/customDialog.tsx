@@ -20,11 +20,11 @@ import {
 } from 'react';
 
 import { Button } from '@/components/ui/button';
-import GetRandomString from '@/components/getRandomString';
-import ViewErrors from '@/components/viewErrors';
-import EntryForm from '@/components/entryForm';
-import PasswordForm from '@/components/passwordForm';
-import ShareForm from '@/components/shareForm';
+import GeneratePassword from '@/components/subcomponents/generatePassword';
+import ViewErrors from '@/components/subcomponents/viewErrors';
+import EntryForm from '@/components/forms/entryForm';
+import PasswordForm from '@/components/forms/passwordForm';
+import ShareForm from '@/components/forms/shareForm';
 import { CustomDialogState, Entry } from '@/types';
 import capAndSplit from '@/lib/capAndSplit';
 
@@ -58,6 +58,10 @@ export default function CustomDialog({
     return !!(formRef?.current && formRef.current.password.value === formRef.current.confirm.value)
   }
 
+  function getCurrentEntry() {
+    return formData ? formData[entryOffset] : undefined;
+  }
+
   const state: CustomDialogState = {
     isOpen,
     setIsOpen,
@@ -70,6 +74,7 @@ export default function CustomDialog({
     confirmMatch,
     entryOffset,
     setEntryOffset,
+    getCurrentEntry,
   };
 
   useEffect(() => {
@@ -136,7 +141,7 @@ export default function CustomDialog({
             <DialogClose asChild>
               <Button variant='secondary' type='button'>Cancel</Button>
             </DialogClose>
-            {!formData ? [] :
+            {!formData || action === 'delete' ? [] :
               <Button variant='secondary'
                 type='button'
                 onClick={() => {
@@ -151,7 +156,7 @@ export default function CustomDialog({
               >Reset</Button>
             }
             {!['add', 'update', 'reset'].includes(action) ? [] :
-              <GetRandomString
+              <GeneratePassword
                 buttonText='Generate'
                 secondary
                 func={(pwd) => {

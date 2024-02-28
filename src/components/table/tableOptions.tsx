@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Table } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import GetRandomString from '@/components/getRandomString';
-import Searchbar from '@/components/searchbar';
-import CustomDialog from '@/components/customDialog';
+import GeneratePassword from '@/components/subcomponents/generatePassword';
+import Searchbar from '@/components/table/searchbar';
+import CustomDialog from '@/components/subcomponents/customDialog';
 import { EditVaultFunction, Entry, Share, UserInfo } from '@/types';
 import { decrypt, getFullKey } from '@/lib/security';
 
@@ -41,19 +41,24 @@ export default function TableOptions({
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} selected
       </div>
-      <GetRandomString buttonText='Copy' />
+      <GeneratePassword buttonText='Copy' />
       <CustomDialog 
         action='delete'
         description='Are you sure you want to delete these entries?'
         formData={table.getFilteredSelectedRowModel().rows.map(row => row.original)}
         submitFunc={(e, state) => {
-          console.log('submited delete 2.0')
           e.preventDefault();
-          editVault({
-            action: 'remove',
-            toChange: table.getFilteredSelectedRowModel().rows.map(row => row.original)
-          })
+          editVault('remove',
+            table.getFilteredSelectedRowModel().rows.map(row => row.original)
+          );
           table.resetRowSelection();
+
+          // const entries = table.getFilteredSelectedRowModel().rows.map(row => row.original);
+          // table.getFilteredSelectedRowModel().rows.forEach(row => {
+          //   editVault({ action: 'remove', toChange: row.original });
+          //   row.toggleSelected(false);
+          // })
+
           state.setIsOpen(false);
         }}
       />
@@ -63,49 +68,18 @@ export default function TableOptions({
         formData={table.getFilteredSelectedRowModel().rows.map(row => row.original)}
         submitFunc={(e, state) => {
           e.preventDefault();
-          console.log('update dialog', e, state)
           const [ currentRow ] = table.getFilteredSelectedRowModel().rows;
-          console.log('EDITING', currentRow.original)
-          console.log(state)
-          // state.setErrors([]);
-          // const error = editVault({
-          //   action: 'update',
-          //   toChange: [{
-          //     ...currentRow.original,
-          //     newService: e.currentTarget.service.value,
-          //     userId: e.currentTarget.userId.value,
-          //     password: e.currentTarget.password.value,
-          //   }],
-          // })
-          // if (error) {
-          //   state.setErrors([error]) 
-          // } else {
-          //   setNextEntry(
-          //     table.getFilteredSelectedRowModel().rows.map(row => row.original),
-          //     // table.getFilteredSelectedRowModel().rows[0].original,
-          //     state.formRef,
-          //     state.setIsOpen,
-          //   )
-          //   currentRow.toggleSelected(false);
-          // }
-          //
-          // error ? state.setErrors([error]) 
-          //   : setNextEntry(
-          //     table.getFilteredSelectedRowModel().rows.map(row => row.original),
-          //     state.formRef,
-          //     state.setIsOpen
-          //   );
+          state.setErrors([]);
+          const error = editVault('update', [{
+            ...currentRow.original,
+            newService: e.currentTarget.service.value,
+            userId: e.currentTarget.userId.value,
+            password: e.currentTarget.password.value,
+          }])
+          error ? state.setErrors([error]) : currentRow.toggleSelected(false);
         }}
         skipFunc={(e, state) => {
-          console.log('this is the part where we skip')
           e.preventDefault();
-          // state.setEntryOffset(state.entryOffset + 1)
-          // setNextEntry(
-          //   table.getFilteredSelectedRowModel().rows.map(row => row.original),
-          //   // table.getFilteredSelectedRowModel().rows[0].original,
-          //   state.formRef,
-          //   state.setIsOpen,
-          // );
           table.getFilteredSelectedRowModel().rows[0].toggleSelected(false);
         }}
       />
@@ -113,25 +87,23 @@ export default function TableOptions({
       <Button disabled={!table.getFilteredSelectedRowModel().rows.length}>Share</Button>
 
       <CustomDialog 
-        // triggerText={`Pending 2.0 (${pendingShares.length})`}
         action='pending'
         formData={pendingShares}
         submitFunc={(e, state) => {
           e.preventDefault();
           console.log('submit pending', e, state)
+          console.log('current entry', state.getCurrentEntry())
+          const entry = state.getCurrentEntry();
+          if (!entry) throw Error('No entry found')
+          const error = editVault('add', [entry])
+          error ? state.setErrors([error]) :
+            setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
         }}
         skipFunc={(e, state) => {
           e.preventDefault();
           console.log('skip pending', e, state)
           console.log('pending', pendingShares)
-          // setNextEntry(
-          //   pendingShares,
-          //   // table.getFilteredSelectedRowModel().rows.map(row => row.original),
-          //   state.formRef,
-          //   state.setIsOpen,
-          // );
           state.setEntryOffset(state.entryOffset + 1)
-          // setPendingShares(pendingShares.slice(1))
         }}
       />
 
@@ -140,16 +112,13 @@ export default function TableOptions({
         submitFunc={(e, state) => {
           e.preventDefault();
           state.setErrors([]);
-          const error = editVault({
-            action: 'add',
-            toChange: [{
-              service: e.currentTarget.service.value,
-              userId: e.currentTarget.userId.value,
-              password: e.currentTarget.password.value,
-              sharedWith: [],
-              owner: userInfo.username,
-            }],
-          })
+          const error = editVault('add', [{
+            service: e.currentTarget.service.value,
+            userId: e.currentTarget.userId.value,
+            password: e.currentTarget.password.value,
+            sharedWith: [],
+            owner: userInfo.username,
+          }])
           error ? state.setErrors([error]) : state.setIsOpen(false);
         }}
       />

@@ -11,9 +11,9 @@ import { useState } from 'react';
 import { Row } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import CustomDialog from '@/components/customDialog';
+import CustomDialog from '@/components/subcomponents/customDialog';
 import { EditVaultFunction, Entry, Share } from '@/types';
-import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
+// import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
 
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -70,15 +70,12 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           e.preventDefault();
           console.log('submitted', state)
           state.setErrors([]);
-          const error = editVault({
-            action: 'update',
-            toChange: [{
-              ...row.original,
-              newService: e.currentTarget.service.value,
-              userId: e.currentTarget.userId.value,
-              password: e.currentTarget.password.value,
-            }],
-          })
+          const error = editVault('update', [{
+            ...row.original,
+            newService: e.currentTarget.service.value,
+            userId: e.currentTarget.userId.value,
+            password: e.currentTarget.password.value,
+          }])
           error ? state.setErrors([error]) : setIsOpen(false);
         }}
       />
@@ -89,7 +86,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         formData={[row.original]}
         submitFunc={(e, state) => {
           e.preventDefault();
-          editVault({ action: 'remove', toChange: [row.original] })
+          editVault('remove', [row.original])
         }}
       />
       <CustomDialog 
@@ -103,10 +100,11 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           const recipient = e.currentTarget.recipient.value;
           state.setErrors([])
 
-          if (row.original.sharedWith.includes(recipient)) {
-            state.setErrors(['already shared with this user'])
-            return
-          }
+          // Taken care of in actionErrors
+          // if (row.original.sharedWith.includes(recipient)) {
+          //   state.setErrors(['already shared with this user'])
+          //   return
+          // }
 
           if (!e.currentTarget.usernameIsValid.ariaChecked) {
             state.setErrors(['user does not exist'])
@@ -117,35 +115,36 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
             ...row.original,
             sharedWith: row.original.sharedWith.concat(recipient)
           }
+          editVault('update', [newEntry])
 
           // Move pushing of shared password to db to editVault function
           // This way, it will be easy to regulate pushing changes to db
           // This allows us to push changes to all shared users everytime an entry is updated or shared
-          const salt = getRandBase64('salt');
-          const iv = getRandBase64('iv');
-          const share: Share = {
-            recipient: await getHash(recipient),
-            salt,
-            iv,
-            sharedEntry: await encrypt(
-              JSON.stringify(newEntry),
-              await getFullKey(recipient, salt),
-              iv,
-            ),
-          }
-          const res = await fetch('/api/share', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(share)
-          })
-          if (res.status === 200) {
-            editVault({
-              action: 'update',
-              toChange: [newEntry]
-            })
-          } else {
-            throw Error('failed to share entry')
-          }
+          // const salt = getRandBase64('salt');
+          // const iv = getRandBase64('iv');
+          // const share: Share = {
+          //   recipient: await getHash(recipient),
+          //   salt,
+          //   iv,
+          //   sharedEntry: await encrypt(
+          //     JSON.stringify(newEntry),
+          //     await getFullKey(recipient, salt),
+          //     iv,
+          //   ),
+          // }
+          // const res = await fetch('/api/share', {
+          //   method: 'POST',
+          //   headers: { 'content-type': 'application/json' },
+          //   body: JSON.stringify(share)
+          // })
+          // if (res.status === 200) {
+          //   editVault({
+          //     action: 'update',
+          //     toChange: [newEntry]
+          //   })
+          // } else {
+          //   throw Error('failed to share entry')
+          // }
         }}
       />
     </DropdownMenu>

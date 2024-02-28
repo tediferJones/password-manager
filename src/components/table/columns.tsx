@@ -62,6 +62,10 @@ export default function getColumnDefs(editVault: EditVaultFunction) {
       }
     },
     {
+      accessorKey: 'owner',
+      header: ({ column }) => <ColumnHeader column={column} />
+    },
+    {
       id: 'actions',
       enableHiding: false,
       cell: ({ row }) => <RowActions row={row} editVault={editVault} />
