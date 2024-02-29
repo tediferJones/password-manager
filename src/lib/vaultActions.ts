@@ -1,5 +1,6 @@
 import { ActionErrors, Entry, VaultActions } from '@/types';
 import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
+import { useUser } from '@clerk/nextjs';
 
 async function uploadEntry(entry: Entry, username: string, salt: string, iv: string, tryCount = 0) {
   console.log('SENDING ENTRY TO', username)
@@ -25,17 +26,9 @@ async function uploadEntry(entry: Entry, username: string, salt: string, iv: str
 
 export const vaultActions: VaultActions = {
   add: (vault, entries) => {
-    // Only add entries that have a unique service name
-    // const existing = vault.map(entry => entry.service)
-    // return vault.concat(entries.filter(entry => !existing.includes(entry.service)));
-
     return vault.concat(entries)
   },
   remove: (vault, entries) => {
-    // Filter out all values with matching service name
-    // const services = entries.map(entry => entry.service)
-    // return vault.filter(({ service }) => !services.includes(service))
-
     return vault.filter(existing => {
       return !entries.some(entry => {
         return ['service', 'owner'].every(key => existing[key] === entry[key])
@@ -43,61 +36,44 @@ export const vaultActions: VaultActions = {
     })
   },
   update: (vault, entries) => {
-    // Just remove and then add
+    // Send new entry to all shared users
     entries.forEach(entry => {
       entry.sharedWith.forEach(username => {
         uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
       })
     })
+
     return vaultActions.add(
       vaultActions.remove(vault, entries),
-      entries.map(entry => {
-        return { ...entry, service: entry.newService || entry.service }
+      // entries.map(entry => {
+      //   return { ...entry, service: entry.newService || entry.service }
+      // })
+      entries.map(({ newService, service, ...rest }) => {
+        return { ...rest, service: newService || service }
       })
     )
   },
   share: (vault, entries) => {
     return vaultActions.update(vault, entries)
   },
-
-  // add: (vault: Entry[], entry: Entry) => {
-  //   return vault.concat(entry)
-  // },
-  // remove: (vault: Entry[], entry: Entry) => {
-  //   return vault.toSpliced(
-  //     vault.findIndex(existing => ['service', 'owner'].every(key => entry[key] === existing[key])),
-  //     1
-  //   )
-  // },
-  // update: (vault: Entry[], entry: Entry) => {
-  //   const { newService, service, ...rest } = entry;
-
-  //   entry.sharedWith.forEach(username => {
-  //     uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
-  //   })
-
-  //   return vaultActions.add(
-  //     vaultActions.remove(vault, entry),
-  //     { ...rest, service: newService ? newService : service }
-  //   )
-  // },
-  // share: (vault: Entry[], entry: Entry) => {
-  //   return vaultActions.update(vault, entry)
-  // },
 }
 
 export const actionErrors: ActionErrors = {
   add: {
-    'This service already exists': (vault: Entry[], entry: Entry) => {
+    'This service already exists': (vault, entry) => {
       return vault.some(existing => existing.service === entry.service && existing.owner === entry.owner)
     }
   },
   update: {
-    'New service name already exists': (vault: Entry[], entry: Entry) => {
+    'New service name already exists': (vault, entry) => {
       const { newService, service } = entry
       if (!newService) throw Error('no new service name found');
       if (newService === service) return false
       return vault.some(existing => newService === existing.service && entry.owner === existing.owner)
+    },
+    'Cannot update this entry, you are not the owner': (vault, entry, userInfo) => {
+      // return entry.owner !== useUser().user?.username
+      return entry.owner !== userInfo.username
     }
   },
   remove: {},
@@ -105,11 +81,14 @@ export const actionErrors: ActionErrors = {
     // sharedWith cannot contain owner
     // verify new usernames exist with fetch request OR just let the form take care of this
     // shared with cannot contain a existing users
-    'You are the owner of this entry': (vault: Entry[], entry: Entry) => {
+    'Cannot share this entry, you are not the owner': (vault, entry, userInfo) => {
+      return entry.owner !== userInfo.username
+    },
+    'Entry cannot be shared with the owner': (vault, entry) => {
       return entry.sharedWith.includes(entry.owner)
     },
-    'Already shared with this user': (vault: Entry[], entry: Entry) => {
+    'Already shared with this user': (vault, entry) => {
       return entry.sharedWith.length !== new Set(entry.sharedWith).size
-    }
+    },
   }
 }

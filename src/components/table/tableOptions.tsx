@@ -4,33 +4,42 @@ import { Button } from '@/components/ui/button';
 import GeneratePassword from '@/components/subcomponents/generatePassword';
 import Searchbar from '@/components/table/searchbar';
 import CustomDialog from '@/components/subcomponents/customDialog';
-import { EditVaultFunction, Entry, Share, UserInfo } from '@/types';
+import { EditVaultFunction, Entry, Share } from '@/types';
 import { decrypt, getFullKey } from '@/lib/security';
+import { useUser } from '@clerk/nextjs';
 
 export default function TableOptions({
   table,
   editVault,
-  userInfo,
 }: {
   table: Table<Entry>,
   editVault: EditVaultFunction,
-  userInfo: UserInfo,
 }) {
-  const [pendingShares, setPendingShares] = useState<Entry[]>([]);
+  const username = useUser().user?.username;
+  if (!username) throw Error('you are not logged in')
+
+  const [pendingShares, setPendingShares] = useState<{ encrypted: Share, decrypted: Entry }[]>([]);
+
   useEffect(() => {
     (async () => {
       const res = await fetch('/api/share')
       const newShares: Share[] = await res.json()
+
       setPendingShares(
-        await Promise.all(newShares.map(async (share) => {
-          return JSON.parse(
-            await decrypt(
-              share.sharedEntry,
-              await getFullKey(userInfo.username, share.salt),
-              share.iv,
-            )
-          );
-        }))
+        await Promise.all(
+          newShares.map(async (share) => {
+            return {
+              encrypted: share,
+              decrypted: JSON.parse(
+                await decrypt(
+                  share.sharedEntry,
+                  await getFullKey(username, share.salt),
+                  share.iv,
+                )
+              )
+            }
+          })
+        )
       )
     })();
   }, []);
@@ -52,13 +61,6 @@ export default function TableOptions({
             table.getFilteredSelectedRowModel().rows.map(row => row.original)
           );
           table.resetRowSelection();
-
-          // const entries = table.getFilteredSelectedRowModel().rows.map(row => row.original);
-          // table.getFilteredSelectedRowModel().rows.forEach(row => {
-          //   editVault({ action: 'remove', toChange: row.original });
-          //   row.toggleSelected(false);
-          // })
-
           state.setIsOpen(false);
         }}
       />
@@ -70,6 +72,7 @@ export default function TableOptions({
           e.preventDefault();
           const [ currentRow ] = table.getFilteredSelectedRowModel().rows;
           state.setErrors([]);
+          console.log('edit vault func')
           const error = editVault('update', [{
             ...currentRow.original,
             newService: e.currentTarget.service.value,
@@ -88,21 +91,28 @@ export default function TableOptions({
 
       <CustomDialog 
         action='pending'
-        formData={pendingShares}
+        formData={pendingShares.map(pending => pending.decrypted)}
         submitFunc={(e, state) => {
           e.preventDefault();
-          console.log('submit pending', e, state)
-          console.log('current entry', state.getCurrentEntry())
+          // console.log('submit pending', e, state)
+          // console.log('current entry', state.getCurrentEntry())
           const entry = state.getCurrentEntry();
           if (!entry) throw Error('No entry found')
           const error = editVault('add', [entry])
-          error ? state.setErrors([error]) :
-            setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
+          if (error) return state.setErrors([error])
+          fetch('/api/share', {
+            method: 'DELETE',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(pendingShares[state.entryOffset].encrypted)
+          })
+          setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
+          // error ? state.setErrors([error]) :
+          //   setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
         }}
         skipFunc={(e, state) => {
           e.preventDefault();
-          console.log('skip pending', e, state)
-          console.log('pending', pendingShares)
+          // console.log('skip pending', e, state)
+          // console.log('pending', pendingShares)
           state.setEntryOffset(state.entryOffset + 1)
         }}
       />
@@ -117,7 +127,7 @@ export default function TableOptions({
             userId: e.currentTarget.userId.value,
             password: e.currentTarget.password.value,
             sharedWith: [],
-            owner: userInfo.username,
+            owner: username,
           }])
           error ? state.setErrors([error]) : state.setIsOpen(false);
         }}

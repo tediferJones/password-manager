@@ -1,4 +1,4 @@
-import { Dispatch, RefObject, SetStateAction } from "react";
+import { Dispatch, RefObject, SetStateAction } from 'react';
 
 interface UserInfo {
   [key: string]: string,
@@ -26,23 +26,20 @@ interface Entry {
 }
 
 type Actions = 'add' | 'remove' | 'update' | 'share';
+
 type ActionFunc = (vault: Entry[], toChange: Entry[]) => Entry[]
+
 type VaultActions = {
   [key in Actions]: ActionFunc
 }
+
 type ActionErrors = {
   [key in Actions]: {
-    [key: string]: (vault: Entry[], entry: Entry) => boolean
+    [key: string]: (vault: Entry[], entry: Entry, userInfo: UserInfo) => boolean
   }
 }
-type EditVaultFunction = (action: Actions, entires: Entry[]) => string | undefined;
 
-// type EditVaultFunction = ({ action, toChange }: EditVaultParams) => string | undefined;
-// interface EditVaultParams {
-//   // action: 'add' | 'remove' | 'update' | 'share',
-//   action: Actions,
-//   toChange: Entry[]
-// }
+type EditVaultFunction = (action: Actions, entires: Entry[]) => string | undefined;
 
 interface CustomDialogState {
   isOpen: boolean,
@@ -63,7 +60,6 @@ export type {
   Share,
   UserInfo,
   Entry,
-  // EditVaultParams,
   EditVaultFunction,
   CustomDialogState,
   Actions,

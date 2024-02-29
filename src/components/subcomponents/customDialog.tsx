@@ -25,8 +25,10 @@ import ViewErrors from '@/components/subcomponents/viewErrors';
 import EntryForm from '@/components/forms/entryForm';
 import PasswordForm from '@/components/forms/passwordForm';
 import ShareForm from '@/components/forms/shareForm';
+import DetailForm from '@/components/forms/detailForm';
 import { CustomDialogState, Entry } from '@/types';
 import capAndSplit from '@/lib/capAndSplit';
+import { useUser } from '@clerk/nextjs';
 
 export default function CustomDialog({
   action,
@@ -78,7 +80,7 @@ export default function CustomDialog({
   };
 
   useEffect(() => {
-    if (!formData || action === 'delete') return;
+    if (!formData || action === 'delete' || action === 'share') return;
     if (formData.length <= entryOffset) return setIsOpen(false);
     ['service', 'userId', 'password'].forEach(formId => {
       if (formRef.current) {
@@ -99,6 +101,7 @@ export default function CustomDialog({
   // @ts-ignore
   const actionType = actionTypes[action] || (formData && formData.length > 1 ? 'Entries' : 'Entry')
   const btnVariant = ['delete', 'reset', 'confirm'].includes(action) ? 'destructive' : 'default';
+  const username = useUser().user?.username;
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {extOpenState ? [] :
@@ -123,15 +126,23 @@ export default function CustomDialog({
           {
             {
               add: <EntryForm />,
-              update: <EntryForm entry={formData ? formData[0] : undefined} />,
+              update: <EntryForm
+                entry={formData ? formData[0] : undefined}
+                shared={username && formData && formData[0] ? formData[0].owner !== username : false}
+              />,
               delete: 
               <div className='max-h-[40vh] overflow-y-auto flex flex-col items-center'>
-                {formData?.map(entry => {
-                  return <div key={`${entry.owner}-${entry.service}`} className='text-center'>{entry.service}</div>
-                })}
-              </div>
-              ,
-              share: <ShareForm />,
+                {formData?.map(entry => <div className='text-center'
+                  key={`${entry.owner}-${entry.service}`}
+                >{entry.service}</div>
+                )}
+              </div>,
+              share: <div>
+                {!formData || !formData[entryOffset] ? [] : 
+                  <DetailForm entry={formData[entryOffset]} />
+                }
+                <ShareForm />
+              </div>,
               pending: <EntryForm entry={formData ? formData[0] : undefined} shared={true} />,
               reset: <PasswordForm confirmMatch={confirmMatch} confirmOld match />,
               confirm: undefined
@@ -145,13 +156,17 @@ export default function CustomDialog({
               <Button variant='secondary'
                 type='button'
                 onClick={() => {
-                  if (formData) {
+                  !formData ? formRef.current?.reset() :
                     ['service', 'userId', 'password'].forEach(key => {
                       if (formRef.current) formRef.current[key].value = formData[0][key];
                     });
-                  } else {
-                    formRef.current?.reset();
-                  }
+                  // if (formData) {
+                  //   ['service', 'userId', 'password'].forEach(key => {
+                  //     if (formRef.current) formRef.current[key].value = formData[0][key];
+                  //   });
+                  // } else {
+                  //   formRef.current?.reset();
+                  // }
                 }}
               >Reset</Button>
             }
@@ -160,12 +175,17 @@ export default function CustomDialog({
                 buttonText='Generate'
                 secondary
                 func={(pwd) => {
-                  if (state.formRef.current?.password) {
-                    state.formRef.current.password.value = pwd
-                  }
-                  if (state.formRef.current?.confirm) {
-                    state.formRef.current.confirm.value = pwd
-                  }
+                  ['password', 'confirm'].forEach(formId => {
+                    if (state.formRef.current && state.formRef.current[formId]) {
+                      state.formRef.current[formId].value = pwd
+                    }
+                  })
+                  // if (state.formRef.current?.password) {
+                  //   state.formRef.current.password.value = pwd
+                  // }
+                  // if (state.formRef.current?.confirm) {
+                  //   state.formRef.current.confirm.value = pwd
+                  // }
                 }}
               />
             }

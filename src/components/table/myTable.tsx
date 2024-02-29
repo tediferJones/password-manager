@@ -21,16 +21,14 @@ import {
 import { useState } from 'react';
 import TableOptions from '@/components/table/tableOptions';
 import getColumnDefs from '@/components/table/columns';
-import { EditVaultFunction, Entry, UserInfo } from '@/types';
+import { EditVaultFunction, Entry } from '@/types';
 
 export default function MyTable({ 
   data,
   editVault,
-  userInfo,
 }: {
   data: Entry[],
   editVault: EditVaultFunction,
-  userInfo: UserInfo
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -63,7 +61,7 @@ export default function MyTable({
 
   return (
     <div className='rounded-md border'>
-      <TableOptions {...{ table, editVault, userInfo }} />
+      <TableOptions {...{ table, editVault }} />
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

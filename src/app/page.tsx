@@ -11,7 +11,7 @@ import DecryptVault from '@/components/decryptVault';
 import MyTable from '@/components/table/myTable';
 import UserSettings from '@/components/subcomponents/userSettings';
 import { encrypt, getRandBase64 } from '@/lib/security';
-import { Actions, EditVaultFunction, EditVaultParams, Entry, UserInfo } from '@/types';
+import { Actions, Entry, UserInfo } from '@/types';
 import { actionErrors, vaultActions } from '@/lib/vaultActions';
 
 // Encryption key can be gotten by using the getFullKey function
@@ -59,6 +59,23 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 // There is a bug in vaultActions module
 //  - If current user is not the owner of the entry we should return an error message
 // NEED TO TEST VAULT ACTION FUNCTIONS, editVault AND ERROR HANDLING
+// Delete notes from /api/share/route.ts
+// Handle automatic share updates
+//  - When we initially fetch new shares
+//    - check if any decrypted shares match existing entries (make sure to handle newService attribute) 
+//      - if owners match and service match, update entry
+//      - if deleteMe will be either '' or a username, 
+//        - if deleteMe is '' delete this entry from the users vault
+//        - if deleteMe is username delee username from sharedWith
+// Share updates need to be handled in order
+//  - Thus we should add a date field to Entry type, this would be good to have for all entries anyways
+//  - Then sort by date and process old first
+//    - IF SERVICE NAME IS UPDATED TWICE THERE COULD BE PROBLEMS
+//    - If there is a connection between multiple updated shares as described above,
+//      then we need to disable updates for that specific entry until the earliest update has been pushed
+//      - You need to thread the needle backwards, this will probably turn into some graph theory shit
+//      - or just use a uuid to identify records, this would theoretically be more dependable than service and owner combo key
+// We should probably display owner and shared with in pending form, this will help identify where the record comes from
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -103,18 +120,19 @@ export default function Home() {
 
   // function editVault({ action, toChange }: EditVaultParams): string | undefined {
   function editVault(action: Actions, toChange: Entry[]): string | undefined {
-    if (!vault) return 'Error, no vault or userInfo found'
+    if (!vault || !userInfo) return 'Error, no vault or userInfo found'
     // Check for existing service names before we modify vault
     // console.log('blocking all vault updates', action, toChange)
 
     // const errorMsg = Object.keys(actionErrors[action]).find(errMsg => actionErrors[action][errMsg](vault, toChange));
     const errorMsg = Object.keys(actionErrors[action]).find(errMsg => {
       return toChange.some(entry => {
-        return actionErrors[action][errMsg](vault, entry)
+        return actionErrors[action][errMsg](vault, entry, userInfo)
       })
     });
     console.log('error:', errorMsg)
     if (errorMsg) return errorMsg;
+    // console.log('blocking all vault changes')
     setVault(vaultActions[action](vault, toChange));
 
     // const services = vault.map(entry => entry.service);

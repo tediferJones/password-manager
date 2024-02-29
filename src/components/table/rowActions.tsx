@@ -12,8 +12,8 @@ import { Row } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CustomDialog from '@/components/subcomponents/customDialog';
-import { EditVaultFunction, Entry, Share } from '@/types';
-// import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
+import { EditVaultFunction, Entry } from '@/types';
+import { useUser } from '@clerk/nextjs';
 
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +40,10 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onSelect={() => setEditIsOpen(!editIsOpen)}>
+        <DropdownMenuItem 
+          onSelect={() => setEditIsOpen(!editIsOpen)}
+          disabled={row.original.owner !== useUser().user?.username}
+        >
           Update
         </DropdownMenuItem>
 
@@ -52,7 +55,10 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onSelect={() => setShareIsOpen(!shareIsOpen)}>
+        <DropdownMenuItem
+          onSelect={() => setShareIsOpen(!shareIsOpen)}
+          disabled={row.original.owner !== useUser().user?.username}
+        >
           Share
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => {
@@ -93,18 +99,13 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         action='share'
         description='Are you sure you want to share this entry?'
         extOpenState={[shareIsOpen, setShareIsOpen]}
+        formData={[row.original]}
         submitFunc={async (e, state) => {
           e.preventDefault();
           console.log('initial submit func', e, state)
           console.log(e.currentTarget.usernameIsValid.ariaChecked)
           const recipient = e.currentTarget.recipient.value;
           state.setErrors([])
-
-          // Taken care of in actionErrors
-          // if (row.original.sharedWith.includes(recipient)) {
-          //   state.setErrors(['already shared with this user'])
-          //   return
-          // }
 
           if (!e.currentTarget.usernameIsValid.ariaChecked) {
             state.setErrors(['user does not exist'])
@@ -115,36 +116,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
             ...row.original,
             sharedWith: row.original.sharedWith.concat(recipient)
           }
-          editVault('update', [newEntry])
-
-          // Move pushing of shared password to db to editVault function
-          // This way, it will be easy to regulate pushing changes to db
-          // This allows us to push changes to all shared users everytime an entry is updated or shared
-          // const salt = getRandBase64('salt');
-          // const iv = getRandBase64('iv');
-          // const share: Share = {
-          //   recipient: await getHash(recipient),
-          //   salt,
-          //   iv,
-          //   sharedEntry: await encrypt(
-          //     JSON.stringify(newEntry),
-          //     await getFullKey(recipient, salt),
-          //     iv,
-          //   ),
-          // }
-          // const res = await fetch('/api/share', {
-          //   method: 'POST',
-          //   headers: { 'content-type': 'application/json' },
-          //   body: JSON.stringify(share)
-          // })
-          // if (res.status === 200) {
-          //   editVault({
-          //     action: 'update',
-          //     toChange: [newEntry]
-          //   })
-          // } else {
-          //   throw Error('failed to share entry')
-          // }
+          editVault('share', [newEntry])
         }}
       />
     </DropdownMenu>

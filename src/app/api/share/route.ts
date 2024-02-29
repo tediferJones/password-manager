@@ -1,10 +1,10 @@
-import { db } from "@/drizzle/db";
-import { share } from "@/drizzle/schema";
-import { getHash } from "@/lib/security";
-import { Share } from "@/types";
-import { currentUser } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { db } from '@/drizzle/db';
+import { share } from '@/drizzle/schema';
+import { getHash } from '@/lib/security';
+import { Share } from '@/types';
+import { currentUser } from '@clerk/nextjs/server';
+import { and, eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 // if use a hash of the username instead of raw username, can we safely just user sender+recipient as password?
 // then we would have to store hashed versions usernames for both sender and recipient
@@ -53,5 +53,24 @@ export async function POST(req: Request) {
   const { recipient, salt, iv, sharedEntry }: Share = await req.json();
   if (!recipient || !salt || !iv || !sharedEntry) return NextResponse.json('Incomplete user info', { status: 400 });
   await db.insert(share).values({ recipient, salt, iv, sharedEntry });
+  return new NextResponse;
+}
+
+export async function DELETE(req: Request) {
+  const user = await currentUser();
+  if (!user || !user.username) return NextResponse.json('Unauthorized', { status: 401 })
+  const recipient = await getHash(user?.username);
+
+  const { salt, iv, sharedEntry }: Share = await req.json();
+  if (!recipient || !salt || !iv || !sharedEntry) return NextResponse.json('Incomplete user info', { status: 400 });
+
+  await db.delete(share).where(
+    and(
+      eq(share.recipient, recipient),
+      eq(share.salt, salt),
+      eq(share.iv, iv),
+      eq(share.sharedEntry, sharedEntry),
+    )
+  );
   return new NextResponse;
 }
