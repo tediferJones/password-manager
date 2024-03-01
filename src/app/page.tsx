@@ -121,33 +121,15 @@ export default function Home() {
   // function editVault({ action, toChange }: EditVaultParams): string | undefined {
   function editVault(action: Actions, toChange: Entry[]): string | undefined {
     if (!vault || !userInfo) return 'Error, no vault or userInfo found'
-    // Check for existing service names before we modify vault
-    // console.log('blocking all vault updates', action, toChange)
-
-    // const errorMsg = Object.keys(actionErrors[action]).find(errMsg => actionErrors[action][errMsg](vault, toChange));
+    // Check for errors before editing vault
     const errorMsg = Object.keys(actionErrors[action]).find(errMsg => {
       return toChange.some(entry => {
         return actionErrors[action][errMsg](vault, entry, userInfo)
       })
     });
-    console.log('error:', errorMsg)
     if (errorMsg) return errorMsg;
     // console.log('blocking all vault changes')
     setVault(vaultActions[action](vault, toChange));
-
-    // const services = vault.map(entry => entry.service);
-    // if (action === 'add' && toChange.some(key => services.includes(key.service))) {
-    //   console.log('found error in editVault')
-    //   return 'Service name already exists'
-    // }
-
-    // if (action === 'update' && toChange.some(key => key.newService && (key.service !== key?.newService) && services.includes(key.newService))) {
-    //   console.log('Prevented update cuz new name already exists')
-    //   return 'Service name already exists'
-    // }
-
-    // console.log('edit vault')
-    // setVault(vaultActions[action](vault, toChange))
   }
 
   return (

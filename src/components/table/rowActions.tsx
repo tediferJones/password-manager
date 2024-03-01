@@ -20,6 +20,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
   const [editIsOpen, setEditIsOpen] = useState(false);
   const [shareIsOpen, setShareIsOpen] = useState(false);
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
+  const [detailIsOpen, setDetailIsOpen] = useState(false);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -63,6 +64,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => {
           console.log(row.original)
+          setDetailIsOpen(!detailIsOpen)
         }}>
           Details
         </DropdownMenuItem>
@@ -118,6 +120,12 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           }
           editVault('share', [newEntry])
         }}
+      />
+      <CustomDialog 
+        action='details'
+        formData={[row.original]}
+        extOpenState={[detailIsOpen, setDetailIsOpen]}
+        submitFunc={(e, state) => {}}
       />
     </DropdownMenu>
   )

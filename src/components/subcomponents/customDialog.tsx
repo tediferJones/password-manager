@@ -29,6 +29,7 @@ import DetailForm from '@/components/forms/detailForm';
 import { CustomDialogState, Entry } from '@/types';
 import capAndSplit from '@/lib/capAndSplit';
 import { useUser } from '@clerk/nextjs';
+import { Trash2 } from 'lucide-react';
 
 export default function CustomDialog({
   action,
@@ -40,7 +41,7 @@ export default function CustomDialog({
   extOpenState,
   submitText,
 }: {
-    action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm'
+    action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm' | 'details'
     submitFunc: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
     description?: string,
     formData?: Entry[],
@@ -80,7 +81,8 @@ export default function CustomDialog({
   };
 
   useEffect(() => {
-    if (!formData || action === 'delete' || action === 'share') return;
+    // if (!formData || action === 'delete' || action === 'share') return;
+    if (!formData || ['delete', 'share', 'details'].includes(action)) return;
     if (formData.length <= entryOffset) return setIsOpen(false);
     ['service', 'userId', 'password'].forEach(formId => {
       if (formRef.current) {
@@ -97,6 +99,7 @@ export default function CustomDialog({
   const actionTypes = {
     reset: 'Password',
     confirm: 'PasswordReset',
+    details: ' ',
   }
   // @ts-ignore
   const actionType = actionTypes[action] || (formData && formData.length > 1 ? 'Entries' : 'Entry')
@@ -119,40 +122,35 @@ export default function CustomDialog({
           <DialogDescription>{description}</DialogDescription>
         }
         <ViewErrors errors={errors} name={`${action}-Errors`} />
-        <form className='grid gap-4 py-4'
+        <form className='grid gap-4'
           ref={formRef}
           onSubmit={(e) => submitFunc(e, state)}
         >
           {
             {
               add: <EntryForm />,
-              update: <EntryForm
-                entry={formData ? formData[0] : undefined}
-                shared={username && formData && formData[0] ? formData[0].owner !== username : false}
+              update: <EntryForm entry={formData?.[entryOffset]}
+                shared={formData?.[entryOffset]?.owner !== username}
               />,
-              delete: 
-              <div className='max-h-[40vh] overflow-y-auto flex flex-col items-center'>
-                {formData?.map(entry => <div className='text-center'
-                  key={`${entry.owner}-${entry.service}`}
-                >{entry.service}</div>
-                )}
+              delete: <div className='max-h-[40vh] overflow-y-auto flex flex-col items-center'>
+                {formData?.map(entry => (
+                  <div className='text-center'
+                    key={`${entry.owner}-${entry.service}`}
+                  >{entry.service}</div>
+                ))}
               </div>,
-              share: <div>
-                {!formData || !formData[entryOffset] ? [] : 
-                  <DetailForm entry={formData[entryOffset]} />
-                }
-                <ShareForm />
-              </div>,
-              pending: <EntryForm entry={formData ? formData[0] : undefined} shared={true} />,
+              share: <ShareForm entry={formData?.[entryOffset]} />,
+              pending: <EntryForm entry={formData?.[entryOffset]} shared={true} />,
               reset: <PasswordForm confirmMatch={confirmMatch} confirmOld match />,
-              confirm: undefined
+              confirm: undefined,
+              details: formData?.[entryOffset] ? <DetailForm entry={formData?.[entryOffset]}/> : [],
             }[action]
           }
           <DialogFooter>
             <DialogClose asChild>
               <Button variant='secondary' type='button'>Cancel</Button>
             </DialogClose>
-            {!formData || action === 'delete' ? [] :
+            {!formData || ['delete', 'details'].includes(action) ? [] :
               <Button variant='secondary'
                 type='button'
                 onClick={() => {
