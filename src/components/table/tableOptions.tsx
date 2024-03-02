@@ -20,27 +20,87 @@ export default function TableOptions({
 
   const [pendingShares, setPendingShares] = useState<{ encrypted: Share, decrypted: Entry }[]>([]);
 
+  interface NewShare {
+    encrypted: Share,
+    decrypted: Entry,
+  }
+
   useEffect(() => {
     (async () => {
       const res = await fetch('/api/share')
       const newShares: Share[] = await res.json()
-
-      setPendingShares(
-        await Promise.all(
-          newShares.map(async (share) => {
-            return {
-              encrypted: share,
-              decrypted: JSON.parse(
-                await decrypt(
-                  share.sharedEntry,
-                  await getFullKey(username, share.salt),
-                  share.iv,
-                )
+      const entries = (await Promise.all(
+        newShares.map(async (share) => {
+          return {
+            encrypted: share,
+            decrypted: JSON.parse(
+              await decrypt(
+                share.sharedEntry,
+                await getFullKey(username, share.salt),
+                share.iv,
               )
-            }
-          })
+            )
+          } as NewShare
+        })
+      )).sort((a, b) => new Date(a.decrypted.date).getTime() - new Date(b.decrypted.date).getTime())
+      .reduce((obj, newEntry) => {
+        // const keys = ['service', 'owner'];
+        // const vault = table.getCoreRowModel().rows.map(row => row.original)
+        // const entryExists = vault.some((entry) => keys.every(key => entry[key] === newEntry.decrypted[key]))
+        const entryExists = (
+          table.getCoreRowModel().rows
+          .map(row => row.original)
+          .some((entry) => 
+            ['service', 'owner'].every(key => entry[key] === newEntry.decrypted[key])
+          )
         )
-      )
+        if (entryExists) {
+          obj.existingShares.push(newEntry)
+        } else {
+          obj.newShares.push(newEntry)
+        }
+        return obj
+      }, { newShares: [], existingShares: [] } as { newShares: NewShare[], existingShares: NewShare[] })
+
+      // YOU STILL HAVE TO REVERSE THREAD THE NEEDLE
+      // If a userA shares an entry with userB and then also updates that entry, 
+      // then userB will recieve two seperate requests for the same entry
+
+      const error = editVault('update', entries.existingShares.map(share => share.decrypted))
+      console.log(error)
+      if (!error) {
+        entries.existingShares.forEach(entry => {
+          fetch('/api/share', {
+            method: 'DELETE',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(entry.encrypted)
+          })
+        })
+      }
+      console.log(error)
+
+      // .filter(newEntry =>  {
+      //   // array is already in order
+      //   // if the decrypted entry exists, update user vault and return false to filter out this element
+      //   // if entry doesnt exist, return true, this is a new entry that has not been accepted by the user
+      //   const keys = ['service', 'owner'];
+      //   const vault = table.getCoreRowModel().rows.map(row => row.original)
+      //   const entryExists = vault.some((entry) => keys.every(key => entry[key] === newEntry.decrypted[key]))
+      //   if (entryExists) {
+      //     editVault()
+      //     return false
+      //   }
+      //   return true
+      // })
+      console.log('Fetched entries', entries)
+
+      // console.log(table.getCoreRowModel())
+      // const vault = table.getCoreRowModel().rows.map(row => row.original)
+      // console.log(vault)
+      // Update existing and remove entry from DB
+
+      setPendingShares(entries.newShares)
+      // setPendingShares(entries)
     })();
   }, []);
 
@@ -127,6 +187,7 @@ export default function TableOptions({
             userId: e.currentTarget.userId.value,
             password: e.currentTarget.password.value,
             sharedWith: [],
+            date: new Date(),
             owner: username,
           }])
           error ? state.setErrors([error]) : state.setIsOpen(false);

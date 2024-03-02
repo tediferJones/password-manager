@@ -64,15 +64,12 @@ export default function UserSettings({
               const target = e.currentTarget;
               if (target.files?.length) {
                 const test: Entry[] = JSON.parse(await target.files[0].text());
-                setVault(test)
-                // const fixed = Object.keys(test).reduce((fixed, entryKey) => {
-                //   fixed[entryKey] = {
-                //     ...test[entryKey],
-                //   }
-                //   return fixed
-                // }, {} as Entry[])
-                // console.log(fixed)
-                // setVault(fixed)
+                setVault(test.map(({ newService, ...rest }) => {
+                  return {
+                    ...rest,
+                    date: new Date(),
+                  }
+                }))
               }
               target.value = '';
             }}

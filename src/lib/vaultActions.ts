@@ -1,6 +1,5 @@
 import { ActionErrors, Entry, VaultActions } from '@/types';
 import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
-import { useUser } from '@clerk/nextjs';
 
 async function uploadEntry(entry: Entry, username: string, salt: string, iv: string, tryCount = 0) {
   console.log('SENDING ENTRY TO', username)

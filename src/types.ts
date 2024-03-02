@@ -16,12 +16,13 @@ interface Share {
 }
 
 interface Entry {
-  [key: string]: string | string[] | undefined,
+  [key: string]: string | string[] | undefined | Date,
   service: string,
   userId: string,
   password: string,
   owner: string,
   sharedWith: string[],
+  date: Date,
   newService?: string,
 }
 

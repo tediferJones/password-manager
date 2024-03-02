@@ -76,6 +76,17 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 //      - You need to thread the needle backwards, this will probably turn into some graph theory shit
 //      - or just use a uuid to identify records, this would theoretically be more dependable than service and owner combo key
 // We should probably display owner and shared with in pending form, this will help identify where the record comes from
+// Move upload function from vaultActions to its own module
+//  - Make it something like easyFetch()
+//
+// To-Do to enable password sharing
+//  - Get auto updates working
+//    - Add timestamp, process auto updates in order of time stamps
+//  - Get auto deletes working
+//    - There are three possiblities
+//      - Owner wants to remove user from share list
+//      - Owner deletes entire entry (remove all users from share list)
+//      - User removes shared entry (remove this user from sharedWith)
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -96,10 +107,8 @@ export default function Home() {
           salt: userInfo.salt || getRandBase64('salt'),
         })
       } else if (vault && fullKey) {
-        // console.log('\n\n\n\nVAULT DATA HAS CHANGED\n\n\n\n');
-        // console.log('UPDATING DATA')
-        // console.log(userInfo)
         console.log('Pushing vault to DB')
+        // console.log(JSON.stringify(vault))
         const newIv = getRandBase64('iv')
         const newUserInfo = {
           ...userInfo,
@@ -108,12 +117,10 @@ export default function Home() {
         }
         fetch('/api/vault', {
           method: 'POST',
-          headers:  {
-            'Content-Type': 'application/json',
-          },
+          headers:  { 'Content-Type': 'application/json' },
           body: JSON.stringify(newUserInfo),
         });
-        setUserInfo(newUserInfo)
+        setUserInfo(newUserInfo);
       } 
     })();
   }, [vault, fullKey])
@@ -129,7 +136,14 @@ export default function Home() {
     });
     if (errorMsg) return errorMsg;
     // console.log('blocking all vault changes')
-    setVault(vaultActions[action](vault, toChange));
+    setVault(
+      vaultActions[action](
+        vault,
+        toChange.map(entry => {
+          return { ...entry, date: new Date() }
+        })
+      )
+    );
   }
 
   return (
