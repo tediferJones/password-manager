@@ -12,6 +12,7 @@ interface Share {
   recipient: string,
   salt: string,
   iv: string,
+  uuid: string,
   sharedEntry: string,
 }
 
@@ -23,12 +24,13 @@ interface Entry {
   owner: string,
   sharedWith: string[],
   date: Date,
+  uuid: string,
   newService?: string,
 }
 
-type Actions = 'add' | 'remove' | 'update' | 'share';
+type Actions = 'add' | 'remove' | 'update' | 'share' | 'auto';
 
-type ActionFunc = (vault: Entry[], toChange: Entry[]) => Entry[]
+type ActionFunc = (vault: Entry[], toChange: Entry[], userInfo: UserInfo) => Entry[]
 
 type VaultActions = {
   [key in Actions]: ActionFunc

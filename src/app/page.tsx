@@ -78,6 +78,8 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 // We should probably display owner and shared with in pending form, this will help identify where the record comes from
 // Move upload function from vaultActions to its own module
 //  - Make it something like easyFetch()
+// USE UUID IN VAULT ACTIONS, in function and error handling
+//  - But maintain the idea that one owner cant have multiple entries with the same service name
 //
 // To-Do to enable password sharing
 //  - Get auto updates working
@@ -139,9 +141,12 @@ export default function Home() {
     setVault(
       vaultActions[action](
         vault,
+        // move updating timeStamp into vaultActions update function,
+        // Date is already included for add, and isnt need for delete, and share just calls update anyways
         toChange.map(entry => {
           return { ...entry, date: new Date() }
-        })
+        }),
+        userInfo,
       )
     );
   }

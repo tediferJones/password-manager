@@ -31,6 +31,7 @@ export default function TableOptions({
       const newShares: Share[] = await res.json()
       const entries = (await Promise.all(
         newShares.map(async (share) => {
+          // We only need uuid to delete entry, so there is no need to keep track of encrypted
           return {
             encrypted: share,
             decrypted: JSON.parse(
@@ -42,31 +43,20 @@ export default function TableOptions({
             )
           } as NewShare
         })
-      )).sort((a, b) => new Date(a.decrypted.date).getTime() - new Date(b.decrypted.date).getTime())
+      ))
+      // try to use filter instead of reduce, that way entries that way existing entries that were updated can be garbage collected
+      // But we need to pass all updates to editVault at once, so we kind of need two seperate arrays
       .reduce((obj, newEntry) => {
-        // const keys = ['service', 'owner'];
-        // const vault = table.getCoreRowModel().rows.map(row => row.original)
-        // const entryExists = vault.some((entry) => keys.every(key => entry[key] === newEntry.decrypted[key]))
         const entryExists = (
           table.getCoreRowModel().rows
           .map(row => row.original)
-          .some((entry) => 
-            ['service', 'owner'].every(key => entry[key] === newEntry.decrypted[key])
-          )
+          .some((entry) => entry.uuid === newEntry.decrypted.uuid)
         )
-        if (entryExists) {
-          obj.existingShares.push(newEntry)
-        } else {
-          obj.newShares.push(newEntry)
-        }
+        obj[entryExists ? 'existingShares' : 'newShares'].push(newEntry);
         return obj
       }, { newShares: [], existingShares: [] } as { newShares: NewShare[], existingShares: NewShare[] })
 
-      // YOU STILL HAVE TO REVERSE THREAD THE NEEDLE
-      // If a userA shares an entry with userB and then also updates that entry, 
-      // then userB will recieve two seperate requests for the same entry
-
-      const error = editVault('update', entries.existingShares.map(share => share.decrypted))
+      const error = editVault('auto', entries.existingShares.map(share => share.decrypted))
       console.log(error)
       if (!error) {
         entries.existingShares.forEach(entry => {
@@ -77,30 +67,8 @@ export default function TableOptions({
           })
         })
       }
-      console.log(error)
-
-      // .filter(newEntry =>  {
-      //   // array is already in order
-      //   // if the decrypted entry exists, update user vault and return false to filter out this element
-      //   // if entry doesnt exist, return true, this is a new entry that has not been accepted by the user
-      //   const keys = ['service', 'owner'];
-      //   const vault = table.getCoreRowModel().rows.map(row => row.original)
-      //   const entryExists = vault.some((entry) => keys.every(key => entry[key] === newEntry.decrypted[key]))
-      //   if (entryExists) {
-      //     editVault()
-      //     return false
-      //   }
-      //   return true
-      // })
       console.log('Fetched entries', entries)
-
-      // console.log(table.getCoreRowModel())
-      // const vault = table.getCoreRowModel().rows.map(row => row.original)
-      // console.log(vault)
-      // Update existing and remove entry from DB
-
       setPendingShares(entries.newShares)
-      // setPendingShares(entries)
     })();
   }, []);
 
@@ -135,7 +103,8 @@ export default function TableOptions({
           console.log('edit vault func')
           const error = editVault('update', [{
             ...currentRow.original,
-            newService: e.currentTarget.service.value,
+            // newService: e.currentTarget.service.value,
+            service: e.currentTarget.service.value,
             userId: e.currentTarget.userId.value,
             password: e.currentTarget.password.value,
           }])
@@ -188,6 +157,7 @@ export default function TableOptions({
             password: e.currentTarget.password.value,
             sharedWith: [],
             date: new Date(),
+            uuid: `${username}-${crypto.randomUUID()}`,
             owner: username,
           }])
           error ? state.setErrors([error]) : state.setIsOpen(false);

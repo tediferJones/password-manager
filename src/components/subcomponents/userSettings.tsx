@@ -64,12 +64,18 @@ export default function UserSettings({
               const target = e.currentTarget;
               if (target.files?.length) {
                 const test: Entry[] = JSON.parse(await target.files[0].text());
-                setVault(test.map(({ newService, ...rest }) => {
-                  return {
-                    ...rest,
-                    date: new Date(),
-                  }
-                }))
+                setVault(test);
+
+                // setVault(test.map(entry => {
+                //   return { ...entry, uuid: `${entry.owner}-${crypto.randomUUID()}` }
+                // }));
+
+                // setVault(test.map(({ newService, ...rest }) => {
+                //   return {
+                //     ...rest,
+                //     date: new Date(),
+                //   }
+                // }))
               }
               target.value = '';
             }}

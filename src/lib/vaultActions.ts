@@ -11,6 +11,7 @@ async function uploadEntry(entry: Entry, username: string, salt: string, iv: str
       recipient: await getHash(username),
       salt,
       iv,
+      uuid: await getHash(entry.uuid),
       sharedEntry: await encrypt(
         JSON.stringify(entry),
         await getFullKey(username, salt),
@@ -30,31 +31,54 @@ export const vaultActions: VaultActions = {
   remove: (vault, entries) => {
     return vault.filter(existing => {
       return !entries.some(entry => {
-        return ['service', 'owner'].every(key => existing[key] === entry[key])
+        // return ['service', 'owner'].every(key => existing[key] === entry[key])
+        return existing.uuid === entry.uuid;
       })
     })
   },
-  update: (vault, entries) => {
+  update: (vault, entries, userInfo) => {
     // Send new entry to all shared users
+    // MOVE FUNCTIN TO DELETE SHARES HERE
+    // IF YOU ARE NOT THE OWNER SEND DELETE REQUEST
+    // IF YOU ARE THE OWNER SEND NEW SHARE TO ALL SHARED WITH USERS
+    // But this doesnt work for when we add pending shares
     entries.forEach(entry => {
+      if (entry.owner !== userInfo.username) return
       entry.sharedWith.forEach(username => {
         uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
       })
     })
 
+    // const newEntries = 
+    //   entries.map(({ newService, service, ...rest }) => {
+    //     return { ...rest, service: newService || service }
+    //   })
+
+    // newEntries.forEach(entry => {
+    //   entry.sharedWith.forEach(username => {
+    //     uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
+    //   })
+    // })
+
     return vaultActions.add(
-      vaultActions.remove(vault, entries),
+      vaultActions.remove(vault, entries, userInfo),
+      entries,
+      userInfo,
       // entries.map(entry => {
       //   return { ...entry, service: entry.newService || entry.service }
       // })
-      entries.map(({ newService, service, ...rest }) => {
-        return { ...rest, service: newService || service }
-      })
+      // entries.map(({ newService, service, ...rest }) => {
+      //   return { ...rest, service: newService || service }
+      // })
+      // newEntries
     )
   },
-  share: (vault, entries) => {
-    return vaultActions.update(vault, entries)
+  share: (vault, entries, userInfo) => {
+    return vaultActions.update(vault, entries, userInfo)
   },
+  auto: (vault, entries, userInfo) => {
+    return vaultActions.update(vault, entries, userInfo)
+  }
 }
 
 export const actionErrors: ActionErrors = {
@@ -65,10 +89,11 @@ export const actionErrors: ActionErrors = {
   },
   update: {
     'New service name already exists': (vault, entry) => {
-      const { newService, service } = entry
-      if (!newService) throw Error('no new service name found');
-      if (newService === service) return false
-      return vault.some(existing => newService === existing.service && entry.owner === existing.owner)
+      return vault.some(existing => existing.service === entry.service && existing.owner === entry.owner)
+      // const { newService, service } = entry
+      // if (!newService) throw Error('no new service name found');
+      // if (newService === service) return false
+      // return vault.some(existing => newService === existing.service && entry.owner === existing.owner)
     },
     'Cannot update this entry, you are not the owner': (vault, entry, userInfo) => {
       // return entry.owner !== useUser().user?.username
@@ -89,5 +114,6 @@ export const actionErrors: ActionErrors = {
     'Already shared with this user': (vault, entry) => {
       return entry.sharedWith.length !== new Set(entry.sharedWith).size
     },
-  }
+  },
+  auto: {},
 }

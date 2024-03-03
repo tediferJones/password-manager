@@ -80,7 +80,8 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           state.setErrors([]);
           const error = editVault('update', [{
             ...row.original,
-            newService: e.currentTarget.service.value,
+            // newService: e.currentTarget.service.value,
+            service: e.currentTarget.service.value,
             userId: e.currentTarget.userId.value,
             password: e.currentTarget.password.value,
           }])

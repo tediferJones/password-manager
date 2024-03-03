@@ -18,5 +18,6 @@ export const share = sqliteTable('share', {
   salt: text('salt').notNull().unique(),
   iv: text('iv').notNull(),
   sharedEntry: text('sharedEntry').notNull(),
+  uuid: text('uuid').notNull().unique(),
 })
 

@@ -45,31 +45,44 @@ export async function GET(req: Request) {
       salt: share.salt,
       iv: share.iv,
       sharedEntry: share.sharedEntry,
+      uuid: share.uuid,
     }).from(share).where(eq(share.recipient, hash)).all()
   )
 }
 
 export async function POST(req: Request) {
-  const { recipient, salt, iv, sharedEntry }: Share = await req.json();
-  if (!recipient || !salt || !iv || !sharedEntry) return NextResponse.json('Incomplete user info', { status: 400 });
-  await db.insert(share).values({ recipient, salt, iv, sharedEntry });
+  const { recipient, salt, iv, sharedEntry, uuid }: Share = await req.json();
+  if (!recipient || !salt || !iv || !sharedEntry || !uuid) return NextResponse.json('Incomplete user info', { status: 400 });
+
+  // IF ENTRY ALREADY EXISTS, UPDATE IT, OTHERWISE ADD NEW RECORD
+  const exists = await db.select().from(share).where(eq(share.uuid, uuid)).get()
+  console.log('existing record', exists)
+  if (exists) {
+    await db.update(share).set({ recipient, salt, iv, sharedEntry }).where(eq(share.uuid, uuid));
+  } else {
+    await db.insert(share).values({ recipient, salt, iv, sharedEntry, uuid });
+  }
   return new NextResponse;
 }
 
 export async function DELETE(req: Request) {
   const user = await currentUser();
-  if (!user || !user.username) return NextResponse.json('Unauthorized', { status: 401 })
+  if (!user || !user.username) return NextResponse.json('Unauthorized', { status: 401 });
   const recipient = await getHash(user?.username);
 
-  const { salt, iv, sharedEntry }: Share = await req.json();
-  if (!recipient || !salt || !iv || !sharedEntry) return NextResponse.json('Incomplete user info', { status: 400 });
+  const { salt, iv, sharedEntry, uuid }: Share = await req.json();
+  if (!recipient || !salt || !iv || !sharedEntry || !uuid) return NextResponse.json('Incomplete user info', { status: 400 });
 
+  // DO WE NEED TO ACCOUNT FOR UUID HERE?
+  // we should actually delete by combo of hashed recipient and hashed uuid,
+  // this is a garunteed unique ID, and as long as recipient matches the deletion is authorized
   await db.delete(share).where(
     and(
       eq(share.recipient, recipient),
-      eq(share.salt, salt),
-      eq(share.iv, iv),
-      eq(share.sharedEntry, sharedEntry),
+      eq(share.uuid, uuid),
+      // eq(share.salt, salt),
+      // eq(share.iv, iv),
+      // eq(share.sharedEntry, sharedEntry),
     )
   );
   return new NextResponse;
