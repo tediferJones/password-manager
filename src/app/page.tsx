@@ -80,6 +80,7 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 //  - Make it something like easyFetch()
 // USE UUID IN VAULT ACTIONS, in function and error handling
 //  - But maintain the idea that one owner cant have multiple entries with the same service name
+// Add a button to pending shares form to remove shared entry from DB without adding it to vault
 //
 // To-Do to enable password sharing
 //  - Get auto updates working
@@ -89,6 +90,16 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 //      - Owner wants to remove user from share list
 //      - Owner deletes entire entry (remove all users from share list)
 //      - User removes shared entry (remove this user from sharedWith)
+//
+// When a user deletes a shared entry,
+//  - send updated entry (without user in share list) to all sharedUsers (except current user)
+// When owner removes user from share list,
+//  - send updated entry (with modified share list) to all sharedUsers ()
+// When owner deletes entry
+//  - send updated entry with an empty share list to all sharedUsers
+//    - This should delete the entry from their vault
+// Consider moving db modifying functions to auto from update
+//  - We may not always want to do these things, and seems like we mainly want to do them when we auto-update shares
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -127,9 +138,9 @@ export default function Home() {
     })();
   }, [vault, fullKey])
 
-  // function editVault({ action, toChange }: EditVaultParams): string | undefined {
   function editVault(action: Actions, toChange: Entry[]): string | undefined {
     if (!vault || !userInfo) return 'Error, no vault or userInfo found'
+
     // Check for errors before editing vault
     const errorMsg = Object.keys(actionErrors[action]).find(errMsg => {
       return toChange.some(entry => {
@@ -137,15 +148,12 @@ export default function Home() {
       })
     });
     if (errorMsg) return errorMsg;
+
     // console.log('blocking all vault changes')
     setVault(
       vaultActions[action](
         vault,
-        // move updating timeStamp into vaultActions update function,
-        // Date is already included for add, and isnt need for delete, and share just calls update anyways
-        toChange.map(entry => {
-          return { ...entry, date: new Date() }
-        }),
+        toChange,
         userInfo,
       )
     );

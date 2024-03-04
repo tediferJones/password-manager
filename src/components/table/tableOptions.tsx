@@ -57,16 +57,18 @@ export default function TableOptions({
       }, { newShares: [], existingShares: [] } as { newShares: NewShare[], existingShares: NewShare[] })
 
       const error = editVault('auto', entries.existingShares.map(share => share.decrypted))
-      console.log(error)
-      if (!error) {
-        entries.existingShares.forEach(entry => {
-          fetch('/api/share', {
-            method: 'DELETE',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(entry.encrypted)
-          })
-        })
-      }
+      console.log('error auto editing vault', error)
+
+      // if (!error) {
+      //   entries.existingShares.forEach(entry => {
+      //     fetch('/api/share', {
+      //       method: 'DELETE',
+      //       headers: { 'content-type': 'application/json' },
+      //       body: JSON.stringify(entry.encrypted)
+      //     })
+      //   })
+      // }
+
       console.log('Fetched entries', entries)
       setPendingShares(entries.newShares)
     })();
@@ -103,7 +105,6 @@ export default function TableOptions({
           console.log('edit vault func')
           const error = editVault('update', [{
             ...currentRow.original,
-            // newService: e.currentTarget.service.value,
             service: e.currentTarget.service.value,
             userId: e.currentTarget.userId.value,
             password: e.currentTarget.password.value,
@@ -123,25 +124,22 @@ export default function TableOptions({
         formData={pendingShares.map(pending => pending.decrypted)}
         submitFunc={(e, state) => {
           e.preventDefault();
-          // console.log('submit pending', e, state)
-          // console.log('current entry', state.getCurrentEntry())
           const entry = state.getCurrentEntry();
           if (!entry) throw Error('No entry found')
           const error = editVault('add', [entry])
-          if (error) return state.setErrors([error])
-          fetch('/api/share', {
-            method: 'DELETE',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(pendingShares[state.entryOffset].encrypted)
-          })
-          setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
-          // error ? state.setErrors([error]) :
-          //   setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
+          error ? state.setErrors([error]) : 
+            setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
+
+          // if (error) return state.setErrors([error])
+          // fetch('/api/share', {
+          //   method: 'DELETE',
+          //   headers: { 'content-type': 'application/json' },
+          //   body: JSON.stringify(pendingShares[state.entryOffset].encrypted)
+          // })
+          // setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
         }}
         skipFunc={(e, state) => {
           e.preventDefault();
-          // console.log('skip pending', e, state)
-          // console.log('pending', pendingShares)
           state.setEntryOffset(state.entryOffset + 1)
         }}
       />
