@@ -100,7 +100,8 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 //    - This should delete the entry from their vault
 // Consider moving db modifying functions to auto from update
 //  - We may not always want to do these things, and seems like we mainly want to do them when we auto-update shares
-
+// Clean up vaultActions, tableOptions, as well as shareForm and/or customDialog
+ 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();

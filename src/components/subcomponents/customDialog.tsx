@@ -40,6 +40,7 @@ export default function CustomDialog({
   confirmFunc,
   extOpenState,
   submitText,
+  deleteFunc,
 }: {
     action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm' | 'details'
     submitFunc: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
@@ -49,6 +50,7 @@ export default function CustomDialog({
     confirmFunc?: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
     extOpenState?: [boolean, Dispatch<SetStateAction<boolean>>]
     submitText?: string,
+    deleteFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void,
 }) {
   const [errors, setErrors] = useState<string[]>([]);
   const [entryOffset, setEntryOffset] = useState(0);
@@ -139,7 +141,25 @@ export default function CustomDialog({
                   >{entry.service}</div>
                 ))}
               </div>,
-              share: <ShareForm entry={formData?.[entryOffset]} />,
+              share: <>
+                {formData?.[entryOffset]?.sharedWith.map(username => {
+                  return <div
+                    key={`${formData?.[entryOffset]?.owner}-${formData?.[entryOffset]?.service}-${username}`}
+                    className='flex justify-center items-center gap-4 p-4 w-4/5 mx-auto'
+                  >
+                    <p className='w-full text-center'>{username}</p>
+                    <Button type='button'
+                      variant='destructive'
+                      value={username}
+                      onClick={(e) => {
+                        if (deleteFunc) deleteFunc(e, state)
+                      }}>
+                      <Trash2 className='w-4 h-4' />
+                    </Button>
+                  </div>
+                })}
+                <ShareForm entry={formData?.[entryOffset]} />
+              </>,
               pending: <EntryForm entry={formData?.[entryOffset]} shared={true} />,
               reset: <PasswordForm confirmMatch={confirmMatch} confirmOld match />,
               confirm: undefined,

@@ -28,7 +28,7 @@ interface Entry {
   newService?: string,
 }
 
-type Actions = 'add' | 'remove' | 'update' | 'share' | 'auto';
+type Actions = 'add' | 'remove' | 'update' | 'share' | 'auto' | 'pending' | 'unshare';
 
 type ActionFunc = (vault: Entry[], toChange: Entry[], userInfo: UserInfo) => Entry[]
 

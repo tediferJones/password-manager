@@ -121,12 +121,25 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           }
           editVault('share', [newEntry])
         }}
+        deleteFunc={(e, state) => {
+          console.log('inside delteFunc', e, state)
+          e.preventDefault();
+          const entry = state.getCurrentEntry();
+          if (!entry) return
+          editVault('unshare', [{
+            ...entry,
+            sharedWith: entry.sharedWith.filter(username => username !== e.currentTarget.value)
+          }])
+        }}
       />
       <CustomDialog 
         action='details'
         formData={[row.original]}
         extOpenState={[detailIsOpen, setDetailIsOpen]}
-        submitFunc={(e, state) => {}}
+        submitFunc={(e, state) => {
+          e.preventDefault();
+          state.setIsOpen(false);
+        }}
       />
     </DropdownMenu>
   )

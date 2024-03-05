@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Entry } from '@/types';
-import { Button } from '../ui/button';
-import { Trash2 } from 'lucide-react';
+// import { Button } from '../ui/button';
+// import { Trash2 } from 'lucide-react';
 
 export default function ShareForm({ entry }: { entry?: Entry }) {
   const [shareWith, setShareWith] = useState('');
@@ -24,6 +24,7 @@ export default function ShareForm({ entry }: { entry?: Entry }) {
 
   return (
     <>
+      {/*
       {entry?.sharedWith.map(username => {
         return <div
           key={`${entry.owner}-${entry.service}-${username}`}
@@ -35,12 +36,13 @@ export default function ShareForm({ entry }: { entry?: Entry }) {
           <Button type='button'
             variant='destructive'
             onClick={(e) => {
-            console.log('remove user from sharedWith', e)
+            console.log('remove user from sharedWith', e, entry)
           }}>
             <Trash2 className='w-4 h-4' />
           </Button>
         </div>
       })}
+      */}
       <div className='grid grid-cols-4 items-center gap-4'>
         <Label htmlFor='recipient'
           className='text-center'

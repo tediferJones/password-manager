@@ -50,14 +50,28 @@ export default function TableOptions({
         const entryExists = (
           table.getCoreRowModel().rows
           .map(row => row.original)
-          .some((entry) => entry.uuid === newEntry.decrypted.uuid)
+          .some(entry => entry.uuid === newEntry.decrypted.uuid)
         )
+        // console.log('all rows', table.getCoreRowModel().rows.map(row => row.original))
+        // console.log('looking for', newEntry.decrypted.uuid)
         obj[entryExists ? 'existingShares' : 'newShares'].push(newEntry);
         return obj
       }, { newShares: [], existingShares: [] } as { newShares: NewShare[], existingShares: NewShare[] })
 
-      const error = editVault('auto', entries.existingShares.map(share => share.decrypted))
-      console.log('error auto editing vault', error)
+      if (entries.existingShares.length) {
+        // const error = editVault('auto', entries.existingShares.map(share => share.decrypted))
+        // console.log('error auto editing vault', error)
+        // This must be run in a timeout because react does this goofy double rending thing
+        // If we immediately edit the vault, the delete request wont be processed by the time we re-fetch the share
+        // CONSIDER CLEARING THIS TIME OUT, JUST LIKE IN shareForm component
+        setTimeout(() => {
+          console.log('error auto editing vault', 
+            editVault('auto', entries.existingShares.map(share => share.decrypted))
+          )
+        }, 500)
+      } else {
+        console.log('no existing entries to update')
+      }
 
       // if (!error) {
       //   entries.existingShares.forEach(entry => {
@@ -126,7 +140,7 @@ export default function TableOptions({
           e.preventDefault();
           const entry = state.getCurrentEntry();
           if (!entry) throw Error('No entry found')
-          const error = editVault('add', [entry])
+          const error = editVault('pending', [entry])
           error ? state.setErrors([error]) : 
             setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
 
