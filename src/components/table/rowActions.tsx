@@ -59,8 +59,10 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         <DropdownMenuItem
           onSelect={() => setShareIsOpen(!shareIsOpen)}
           disabled={row.original.owner !== useUser().user?.username}
+          className='flex justify-between'
         >
-          Share
+          <p>Share</p>
+          <p>{`( ${row.original.sharedWith.length} )`}</p>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => {
           console.log(row.original)
@@ -80,7 +82,6 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           state.setErrors([]);
           const error = editVault('update', [{
             ...row.original,
-            // newService: e.currentTarget.service.value,
             service: e.currentTarget.service.value,
             userId: e.currentTarget.userId.value,
             password: e.currentTarget.password.value,
@@ -105,21 +106,26 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         formData={[row.original]}
         submitFunc={async (e, state) => {
           e.preventDefault();
-          console.log('initial submit func', e, state)
-          console.log(e.currentTarget.usernameIsValid.ariaChecked)
+          // console.log('initial submit func', e, state)
+          // console.log(e.currentTarget.usernameIsValid.ariaChecked)
           const recipient = e.currentTarget.recipient.value;
           state.setErrors([])
 
           if (!e.currentTarget.usernameIsValid.ariaChecked) {
-            state.setErrors(['user does not exist'])
+            state.setErrors(['Username is not valid'])
             return
           }
 
-          const newEntry: Entry = {
+          const error = editVault('share', [{
             ...row.original,
-            sharedWith: row.original.sharedWith.concat(recipient)
+            sharedWith: row.original.sharedWith.concat(recipient),
+          }])
+
+          console.log('edit vault errors', error)
+          if (error) {
+            state.setErrors([error])
           }
-          editVault('share', [newEntry])
+          // error ? state.setErrors([error]) : state.setIsOpen(false);
         }}
         deleteFunc={(e, state) => {
           console.log('inside delteFunc', e, state)
@@ -130,6 +136,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
             ...entry,
             sharedWith: entry.sharedWith.filter(username => username !== e.currentTarget.value)
           }])
+          state.setIsOpen(true)
         }}
       />
       <CustomDialog 

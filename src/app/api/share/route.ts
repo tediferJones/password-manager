@@ -24,9 +24,21 @@ export async function POST(req: Request) {
   const { recipient, salt, iv, sharedEntry, uuid }: Share = await req.json();
   if (!recipient || !salt || !iv || !sharedEntry || !uuid) return NextResponse.json('Incomplete user info', { status: 400 });
 
-  const exists = await db.select().from(share).where(eq(share.uuid, uuid)).get()
+  const exists = await db.select().from(share).where(
+    and(
+      eq(share.uuid, uuid),
+      eq(share.recipient, recipient),
+    )
+  ).get()
   if (exists) {
-    await db.update(share).set({ recipient, salt, iv, sharedEntry }).where(eq(share.uuid, uuid));
+    await db.update(share)
+    .set({ recipient, salt, iv, sharedEntry })
+    .where(
+      and(
+        eq(share.uuid, uuid),
+        eq(share.recipient, recipient),
+      )
+    );
   } else {
     await db.insert(share).values({ recipient, salt, iv, sharedEntry, uuid });
   }
@@ -37,9 +49,6 @@ export async function DELETE(req: Request) {
   const user = await currentUser();
   if (!user || !user.username) return NextResponse.json('Unauthorized', { status: 401 });
   const recipient = await getHash(user?.username);
-
-  // const { salt, iv, sharedEntry, uuid }: Share = await req.json();
-  // if (!recipient || !salt || !iv || !sharedEntry || !uuid) return NextResponse.json('Incomplete user info', { status: 400 });
 
   const { uuid }: Share = await req.json();
   if (!recipient || !uuid) return NextResponse.json('Incomplete user info', { status: 400 });

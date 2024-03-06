@@ -2,21 +2,23 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Entry } from '@/types';
-// import { Button } from '../ui/button';
-// import { Trash2 } from 'lucide-react';
 
 export default function ShareForm({ entry }: { entry?: Entry }) {
   const [shareWith, setShareWith] = useState('');
   const [recipientExists, setRecipientExists] = useState(false);
 
   useEffect(() => {
-    let delay: any;
+    let delay: NodeJS.Timeout | undefined;
     if (shareWith) {
       delay = setTimeout(() => {
         fetch(`/api/users/${shareWith}`)
           .then(res => res.json())
-          .then(body => setRecipientExists(body.userExists))
-          .catch(err => console.log('this is an error', err))
+          .then(body => {
+            if (!entry) throw Error('no entry found in shareForm')
+            setRecipientExists(
+              body.userExists && entry.owner !== shareWith && !entry.sharedWith.includes(shareWith)
+            )
+          })
       }, 100)
     }
     return () => clearTimeout(delay)
@@ -24,25 +26,6 @@ export default function ShareForm({ entry }: { entry?: Entry }) {
 
   return (
     <>
-      {/*
-      {entry?.sharedWith.map(username => {
-        return <div
-          key={`${entry.owner}-${entry.service}-${username}`}
-          className='flex justify-center items-center gap-4 p-4 w-4/5 mx-auto'
-        >
-          <p className='w-full text-center'>
-            {username}
-          </p>
-          <Button type='button'
-            variant='destructive'
-            onClick={(e) => {
-            console.log('remove user from sharedWith', e, entry)
-          }}>
-            <Trash2 className='w-4 h-4' />
-          </Button>
-        </div>
-      })}
-      */}
       <div className='grid grid-cols-4 items-center gap-4'>
         <Label htmlFor='recipient'
           className='text-center'

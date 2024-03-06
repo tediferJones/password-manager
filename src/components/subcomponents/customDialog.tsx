@@ -35,6 +35,7 @@ export default function CustomDialog({
   action,
   submitFunc,
   description,
+  counter,
   formData,
   skipFunc,
   confirmFunc,
@@ -45,6 +46,7 @@ export default function CustomDialog({
     action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm' | 'details'
     submitFunc: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
     description?: string,
+    counter?: number,
     formData?: Entry[],
     skipFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void,
     confirmFunc?: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
@@ -83,7 +85,6 @@ export default function CustomDialog({
   };
 
   useEffect(() => {
-    // if (!formData || action === 'delete' || action === 'share') return;
     if (!formData || ['delete', 'share', 'details'].includes(action)) return;
     if (formData.length <= entryOffset) return setIsOpen(false);
     ['service', 'userId', 'password'].forEach(formId => {
@@ -107,12 +108,13 @@ export default function CustomDialog({
   const actionType = actionTypes[action] || (formData && formData.length > 1 ? 'Entries' : 'Entry')
   const btnVariant = ['delete', 'reset', 'confirm'].includes(action) ? 'destructive' : 'default';
   const username = useUser().user?.username;
+  const triggerText = capAndSplit(action.split('')) + (counter ? ` ( ${counter} )` : '')
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {extOpenState ? [] :
         <DialogTrigger asChild>
-          <Button className='capitalize' variant={btnVariant} disabled={!(action === 'add' || formData && formData.length)}>
-            {capAndSplit(action.split('')) + (action === 'pending' && formData ? ` (${formData.length})` : '')}
+          <Button className='capitalize relative' variant={btnVariant} disabled={!(action === 'add' || formData && formData.length)}>
+            {triggerText}
           </Button>
         </DialogTrigger>
       }
@@ -174,17 +176,10 @@ export default function CustomDialog({
               <Button variant='secondary'
                 type='button'
                 onClick={() => {
-                  !formData ? formRef.current?.reset() :
+                  !formData || ['share'].includes(action) ? formRef.current?.reset() :
                     ['service', 'userId', 'password'].forEach(key => {
-                      if (formRef.current) formRef.current[key].value = formData[0][key];
+                      if (formRef.current?.[key]) formRef.current[key].value = formData[0][key];
                     });
-                  // if (formData) {
-                  //   ['service', 'userId', 'password'].forEach(key => {
-                  //     if (formRef.current) formRef.current[key].value = formData[0][key];
-                  //   });
-                  // } else {
-                  //   formRef.current?.reset();
-                  // }
                 }}
               >Reset</Button>
             }
@@ -194,16 +189,10 @@ export default function CustomDialog({
                 secondary
                 func={(pwd) => {
                   ['password', 'confirm'].forEach(formId => {
-                    if (state.formRef.current && state.formRef.current[formId]) {
+                    if (state.formRef.current?.[formId]) {
                       state.formRef.current[formId].value = pwd
                     }
                   })
-                  // if (state.formRef.current?.password) {
-                  //   state.formRef.current.password.value = pwd
-                  // }
-                  // if (state.formRef.current?.confirm) {
-                  //   state.formRef.current.confirm.value = pwd
-                  // }
                 }}
               />
             }

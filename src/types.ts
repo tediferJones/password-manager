@@ -25,7 +25,6 @@ interface Entry {
   sharedWith: string[],
   date: Date,
   uuid: string,
-  newService?: string,
 }
 
 type Actions = 'add' | 'remove' | 'update' | 'share' | 'auto' | 'pending' | 'unshare';

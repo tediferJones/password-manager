@@ -51,62 +51,15 @@ function deleteHandler(entry: Entry, recipients: string[], newSharedWith: string
 
 export const vaultActions: VaultActions = {
   add: (vault, entries, userInfo) => {
-    // If entry owner is not current user, then we are adding a shared entry
-    // entries.forEach(entry => {
-    //   if (entry.owner === userInfo.username) return
-    //   console.log('sending delete request')
-    //   deleteShare(entry.uuid)
-    //   // fetch('/api/share', {
-    //   //   method: 'DELETE',
-    //   //   headers: { 'content-type': 'application/json' },
-    //   //   body: JSON.stringify({ uuid: await getHash(entry.uuid) })
-    //   // })
-    // })
     return vault.concat(entries)
   },
   remove: (vault, entries, userInfo) => {
-    // If you are not the owner of an entry, then 'update' entry so user is no longer in share list
-    // Send this updated entry to all shared with users and owner
-    //
     // CASE 1 & 2
     // If owner, send delete request to all in sharedWith
     // If not owner, send updated entry (without user) to all in sharedWith (except for user)
     entries.forEach(entry => {
-      // if (entry.owner === userInfo.username) {
-      //   // If we are the owner, we want to delete this entry for all shared users
-      //   // By setting this entry to an empty array, it will be filtered out in vaultActions update function
-      //   // Thus it will be removed, but the new version wont be added
-      //   entry.sharedWith.forEach(username => {
-      //     uploadEntry(
-      //       { ...entry, sharedWith: [] },
-      //       username,
-      //       getRandBase64('salt'),
-      //       getRandBase64('iv')
-      //     )
-      //   })
-      // } else {
-      //   const newShareList = entry.sharedWith.filter(username => username !== userInfo.username);
-      //   console.log('sending entries for', [entry.owner, ...newShareList]);
-      //   [entry.owner, ...newShareList].forEach(username => {
-      //     uploadEntry(
-      //       { ...entry, sharedWith: newShareList },
-      //       username,
-      //       getRandBase64('salt'),
-      //       getRandBase64('iv')
-      //     )
-      //   })
-      // }
       const newShareList = entry.sharedWith.filter(username => username !== userInfo.username);
       const isOwner = entry.owner === userInfo.username
-      // const recipients = isOwner ? entry.sharedWith : newShareList.concat(entry.owner);
-      // recipients.forEach(username => {
-      //   uploadEntry(
-      //     { ...entry, sharedWith: isOwner ? [] : newShareList },
-      //     username,
-      //     getRandBase64('salt'),
-      //     getRandBase64('iv')
-      //   )
-      // })
       deleteHandler(
         entry,
         isOwner ? entry.sharedWith : newShareList.concat(entry.owner),
@@ -114,26 +67,11 @@ export const vaultActions: VaultActions = {
       )
     })
 
-
-    // TESTING
     // On remove we want run the above code, but not when updating via 'auto' command
     const entryIds = entries.map(entry => entry.uuid);
     return vault.filter(existing => !entryIds.includes(existing.uuid));
-
-    // WORKING
-    // return vault.filter(existing => {
-    //   return !entries.some(entry => {
-    //     return existing.uuid === entry.uuid;
-    //   })
-    // })
   },
   update: (vault, entries, userInfo) => {
-    // Send new entry to all shared users
-    // MOVE FUNCTIN TO DELETE SHARES HERE
-    // IF YOU ARE NOT THE OWNER SEND DELETE REQUEST
-    // IF YOU ARE THE OWNER SEND NEW SHARE TO ALL SHARED WITH USERS
-    // But this doesnt work for when we add pending shares
-    //
     // CASE 3
     // Removing a user from shared list is just an update
     // But instead of operating on the new share list we need to operate on the old share list
@@ -147,29 +85,11 @@ export const vaultActions: VaultActions = {
           uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
         })
       } 
-      // else {
-      //   console.log('delete from DB', entry)
-      //   deleteShare(entry.uuid)
-      // }
-
-      // OLD WORKING
-      // if (entry.owner !== userInfo.username) return
-      // entry.sharedWith.forEach(username => {
-      //   uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
-      // })
     })
 
     const entryIds = entries.map(entry => entry.uuid);
     return vaultActions.add(
       vault.filter(existing => !entryIds.includes(existing.uuid)),
-
-      // WORKING
-      // vaultActions.remove(vault, entries, userInfo),
-      // entries.map(entry => {
-      //   return { ...entry, date: new Date() }
-      // }),
-
-      // TESTING
       entries
         // Add entry as long as you are the owner or your username is included in sharedWith
         .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
@@ -187,7 +107,6 @@ export const vaultActions: VaultActions = {
         const removedUsers = oldSharedWith.sharedWith.filter(existingUser => {
           return !entry.sharedWith.includes(existingUser)
         })
-        // console.log('removedUsers', removedUsers, entry, oldSharedWith)
         deleteHandler(
           entry,
           removedUsers,
@@ -200,25 +119,15 @@ export const vaultActions: VaultActions = {
   },
   pending: (vault, entries, userInfo) => {
     entries.forEach(entry => {
-      // if (entry.owner === userInfo.username) return
       deleteShare(entry.uuid)
     })
     return vaultActions.add(vault, entries, userInfo)
   },
   auto: (vault, entries, userInfo) => {
-    // return vaultActions.update(vault, entries, userInfo)
     entries.forEach(entry => {
       deleteShare(entry.uuid)
     })
-    // return vaultActions.update(vault, entries, userInfo)
     const entryIds = entries.map(entry => entry.uuid);
-    // console.log(entries)
-    // console.log('removed arr', vault.filter(existing => !entryIds.includes(existing.uuid)))
-    // console.log('adding arr',
-    //   entries
-    //     .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
-    //     .map(entry => ({ ...entry, date: new Date() })),
-    // )
     return vaultActions.add(
       vault.filter(existing => !entryIds.includes(existing.uuid)),
       entries

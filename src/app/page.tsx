@@ -32,6 +32,7 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 //  - IV is now changed everytime vault is updated
 //  - Make sure salt is unique in api when new vault is created
 // Add an extra conditional to the render chain that checks for a vault, else displays an error message
+//  - Move loading spinner to its own component
 // Implement input validation module from chat-bun
 //  - FOR BACKEND
 //    - All we can really do is check if salt and iv are a reasonable length
@@ -45,13 +46,7 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 // Add index.tsx to src/components?
 //  - That way we can import multiple components in one line
 // Apparently we dont need to verify users in api routes, this is already taken care of by clerk
-// Add more safeties to share.
-//  - Shouldn't be able to share or update an entry that you are not the owner of
-//  - Should be able to remove users from share list
-//    - This could be done in the share dialog
-//    - Or we could try to implement a sub menu in the rowAction dropdown
-//  - Add some kind of indicator for how many users this entry is shared with
-//    - Could be shown in the rowActions drop down like so Share (15)
+//  - Check api routes, remove user is logged logic
 // Due to the way we share entries, usernames are now considered sensitive data
 //  - Thus we should change the way vaults are stored in the DB so that username is a hash of the current user's username
 // UserInfo and Share types are essentially the same
@@ -59,48 +54,14 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 // There is a bug in vaultActions module
 //  - If current user is not the owner of the entry we should return an error message
 // NEED TO TEST VAULT ACTION FUNCTIONS, editVault AND ERROR HANDLING
-// Delete notes from /api/share/route.ts
-// Handle automatic share updates
-//  - When we initially fetch new shares
-//    - check if any decrypted shares match existing entries (make sure to handle newService attribute) 
-//      - if owners match and service match, update entry
-//      - if deleteMe will be either '' or a username, 
-//        - if deleteMe is '' delete this entry from the users vault
-//        - if deleteMe is username delee username from sharedWith
-// Share updates need to be handled in order
-//  - Thus we should add a date field to Entry type, this would be good to have for all entries anyways
-//  - Then sort by date and process old first
-//    - IF SERVICE NAME IS UPDATED TWICE THERE COULD BE PROBLEMS
-//    - If there is a connection between multiple updated shares as described above,
-//      then we need to disable updates for that specific entry until the earliest update has been pushed
-//      - You need to thread the needle backwards, this will probably turn into some graph theory shit
-//      - or just use a uuid to identify records, this would theoretically be more dependable than service and owner combo key
 // We should probably display owner and shared with in pending form, this will help identify where the record comes from
 // Move upload function from vaultActions to its own module
 //  - Make it something like easyFetch()
 // USE UUID IN VAULT ACTIONS, in function and error handling
 //  - But maintain the idea that one owner cant have multiple entries with the same service name
 // Add a button to pending shares form to remove shared entry from DB without adding it to vault
-//
-// To-Do to enable password sharing
-//  - Get auto updates working
-//    - Add timestamp, process auto updates in order of time stamps
-//  - Get auto deletes working
-//    - There are three possiblities
-//      - Owner wants to remove user from share list
-//      - Owner deletes entire entry (remove all users from share list)
-//      - User removes shared entry (remove this user from sharedWith)
-//
-// When a user deletes a shared entry,
-//  - send updated entry (without user in share list) to all sharedUsers (except current user)
-// When owner removes user from share list,
-//  - send updated entry (with modified share list) to all sharedUsers ()
-// When owner deletes entry
-//  - send updated entry with an empty share list to all sharedUsers
-//    - This should delete the entry from their vault
-// Consider moving db modifying functions to auto from update
-//  - We may not always want to do these things, and seems like we mainly want to do them when we auto-update shares
 // Clean up vaultActions, tableOptions, as well as shareForm and/or customDialog
+// Create dialog to share multiple
  
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();

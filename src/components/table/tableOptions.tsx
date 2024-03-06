@@ -18,70 +18,43 @@ export default function TableOptions({
   const username = useUser().user?.username;
   if (!username) throw Error('you are not logged in')
 
-  const [pendingShares, setPendingShares] = useState<{ encrypted: Share, decrypted: Entry }[]>([]);
-
-  interface NewShare {
-    encrypted: Share,
-    decrypted: Entry,
-  }
+  const [pendingShares, setPendingShares] = useState<Entry[]>([]);
 
   useEffect(() => {
     (async () => {
       const res = await fetch('/api/share')
       const newShares: Share[] = await res.json()
+      const existingIds = table.getCoreRowModel().rows.map(row=> row.original.uuid);
       const entries = (await Promise.all(
         newShares.map(async (share) => {
           // We only need uuid to delete entry, so there is no need to keep track of encrypted
-          return {
-            encrypted: share,
-            decrypted: JSON.parse(
-              await decrypt(
-                share.sharedEntry,
-                await getFullKey(username, share.salt),
-                share.iv,
-              )
+          return JSON.parse(
+            await decrypt(
+              share.sharedEntry,
+              await getFullKey(username, share.salt),
+              share.iv,
             )
-          } as NewShare
+          ) as Entry;
         })
       ))
       // try to use filter instead of reduce, that way entries that way existing entries that were updated can be garbage collected
       // But we need to pass all updates to editVault at once, so we kind of need two seperate arrays
       .reduce((obj, newEntry) => {
-        const entryExists = (
-          table.getCoreRowModel().rows
-          .map(row => row.original)
-          .some(entry => entry.uuid === newEntry.decrypted.uuid)
-        )
-        // console.log('all rows', table.getCoreRowModel().rows.map(row => row.original))
-        // console.log('looking for', newEntry.decrypted.uuid)
+        const entryExists = existingIds.includes(newEntry.uuid)
         obj[entryExists ? 'existingShares' : 'newShares'].push(newEntry);
         return obj
-      }, { newShares: [], existingShares: [] } as { newShares: NewShare[], existingShares: NewShare[] })
+      }, { newShares: [], existingShares: [] } as { newShares: Entry[], existingShares: Entry[] })
 
       if (entries.existingShares.length) {
-        // const error = editVault('auto', entries.existingShares.map(share => share.decrypted))
-        // console.log('error auto editing vault', error)
         // This must be run in a timeout because react does this goofy double rending thing
-        // If we immediately edit the vault, the delete request wont be processed by the time we re-fetch the share
+        // If we immediately edit the vault, the delete request wont be processed by the time we re-fetch the shares
         // CONSIDER CLEARING THIS TIME OUT, JUST LIKE IN shareForm component
         setTimeout(() => {
           console.log('error auto editing vault', 
-            editVault('auto', entries.existingShares.map(share => share.decrypted))
+            editVault('auto', entries.existingShares)
           )
         }, 500)
-      } else {
-        console.log('no existing entries to update')
       }
-
-      // if (!error) {
-      //   entries.existingShares.forEach(entry => {
-      //     fetch('/api/share', {
-      //       method: 'DELETE',
-      //       headers: { 'content-type': 'application/json' },
-      //       body: JSON.stringify(entry.encrypted)
-      //     })
-      //   })
-      // }
 
       console.log('Fetched entries', entries)
       setPendingShares(entries.newShares)
@@ -135,7 +108,8 @@ export default function TableOptions({
 
       <CustomDialog 
         action='pending'
-        formData={pendingShares.map(pending => pending.decrypted)}
+        counter={pendingShares.length}
+        formData={pendingShares}
         submitFunc={(e, state) => {
           e.preventDefault();
           const entry = state.getCurrentEntry();
@@ -143,14 +117,6 @@ export default function TableOptions({
           const error = editVault('pending', [entry])
           error ? state.setErrors([error]) : 
             setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
-
-          // if (error) return state.setErrors([error])
-          // fetch('/api/share', {
-          //   method: 'DELETE',
-          //   headers: { 'content-type': 'application/json' },
-          //   body: JSON.stringify(pendingShares[state.entryOffset].encrypted)
-          // })
-          // setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
         }}
         skipFunc={(e, state) => {
           e.preventDefault();
