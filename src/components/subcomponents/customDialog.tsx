@@ -85,10 +85,10 @@ export default function CustomDialog({
   };
 
   useEffect(() => {
-    if (!formData || ['delete', 'share', 'details'].includes(action)) return;
+    if (!formData || ['delete', 'details'].includes(action)) return;
     if (formData.length <= entryOffset) return setIsOpen(false);
     ['service', 'userId', 'password'].forEach(formId => {
-      if (formRef.current) {
+      if (formRef.current?.[formId]) {
         formRef.current[formId].value = formData[entryOffset][formId]
       }
     })
@@ -147,7 +147,7 @@ export default function CustomDialog({
                 {formData?.[entryOffset]?.sharedWith.map(username => {
                   return <div
                     key={`${formData?.[entryOffset]?.owner}-${formData?.[entryOffset]?.service}-${username}`}
-                    className='flex justify-center items-center gap-4 p-4 w-4/5 mx-auto'
+                    className='flex justify-center items-center gap-4 w-4/5 mx-auto'
                   >
                     <p className='w-full text-center'>{username}</p>
                     <Button type='button'
@@ -170,7 +170,7 @@ export default function CustomDialog({
           }
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant='secondary' type='button'>Cancel</Button>
+              <Button variant='secondary' type='button'>Close</Button>
             </DialogClose>
             {!formData || ['delete', 'details'].includes(action) ? [] :
               <Button variant='secondary'
@@ -200,7 +200,7 @@ export default function CustomDialog({
               <Button variant='secondary'
                 type='button'
                 onClick={(e) => skipFunc(e, state)}
-              >Skip</Button>
+              >Next</Button>
             }
             <Button type='submit' variant={btnVariant}>
               {capAndSplit((submitText || action).split(''))}

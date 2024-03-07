@@ -25,22 +25,23 @@ export default function TableOptions({
       const res = await fetch('/api/share')
       const newShares: Share[] = await res.json()
       const existingIds = table.getCoreRowModel().rows.map(row=> row.original.uuid);
-      const entries = (await Promise.all(
-        newShares.map(async (share) => {
-          // We only need uuid to delete entry, so there is no need to keep track of encrypted
-          return JSON.parse(
-            await decrypt(
-              share.sharedEntry,
-              await getFullKey(username, share.salt),
-              share.iv,
-            )
-          ) as Entry;
-        })
-      ))
+      const entries = (
+        await Promise.all(
+          newShares.map(async (share) => {
+            return JSON.parse(
+              await decrypt(
+                share.sharedEntry,
+                await getFullKey(username, share.salt),
+                share.iv,
+              )
+            ) as Entry;
+          })
+        )
+      )
       // try to use filter instead of reduce, that way entries that way existing entries that were updated can be garbage collected
       // But we need to pass all updates to editVault at once, so we kind of need two seperate arrays
       .reduce((obj, newEntry) => {
-        const entryExists = existingIds.includes(newEntry.uuid)
+        const entryExists = existingIds.includes(newEntry.uuid) || !newEntry.sharedWith.includes(username)
         obj[entryExists ? 'existingShares' : 'newShares'].push(newEntry);
         return obj
       }, { newShares: [], existingShares: [] } as { newShares: Entry[], existingShares: Entry[] })
@@ -100,11 +101,44 @@ export default function TableOptions({
         }}
         skipFunc={(e, state) => {
           e.preventDefault();
+          state.setErrors([])
           table.getFilteredSelectedRowModel().rows[0].toggleSelected(false);
         }}
       />
 
-      <Button disabled={!table.getFilteredSelectedRowModel().rows.length}>Share</Button>
+      <CustomDialog 
+        action='share'
+        formData={table.getFilteredSelectedRowModel().rows.map(row => row.original)}
+        submitFunc={(e, state) => {
+          e.preventDefault();
+          state.setErrors([])
+          if (!e.currentTarget.usernameIsValid.ariaChecked) {
+            return state.setErrors(['Username is not valid'])
+          }
+
+          const row = table.getFilteredSelectedRowModel().rows[state.entryOffset];
+          const error = editVault('share', [{
+            ...row.original,
+            sharedWith: row.original.sharedWith.concat(e.currentTarget.recipient.value)
+          }])
+          error ? state.setErrors([error]) : state.formRef.current?.reset();
+        }}
+        skipFunc={(e, state) => {
+          e.preventDefault();
+          state.setErrors([])
+          table.getFilteredSelectedRowModel().rows[state.entryOffset].toggleSelected(false);
+        }}
+        deleteFunc={(e, state) => {
+          console.log('inside delteFunc', e, state)
+          e.preventDefault();
+          const entry = state.getCurrentEntry();
+          if (!entry) return
+          editVault('unshare', [{
+            ...entry,
+            sharedWith: entry.sharedWith.filter(username => username !== e.currentTarget.value)
+          }])
+        }}
+      />
 
       <CustomDialog 
         action='pending'
@@ -120,6 +154,7 @@ export default function TableOptions({
         }}
         skipFunc={(e, state) => {
           e.preventDefault();
+          state.setErrors([])
           state.setEntryOffset(state.entryOffset + 1)
         }}
       />

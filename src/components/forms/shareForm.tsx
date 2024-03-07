@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Entry } from '@/types';
+import capAndSplit from '@/lib/capAndSplit';
 
 export default function ShareForm({ entry }: { entry?: Entry }) {
   const [shareWith, setShareWith] = useState('');
@@ -26,6 +27,17 @@ export default function ShareForm({ entry }: { entry?: Entry }) {
 
   return (
     <>
+      <div className='grid grid-cols-2 gap-4'>
+        {!entry ? [] : ['service', 'owner', 'sharedWith', 'date'].map(key => {
+          const contents = {
+            sharedWith: entry.sharedWith.length ? entry.sharedWith.join(', ') : 'None',
+            date: new Date(entry.date).toLocaleString(),
+          }[key];
+          return <p key={key}
+            className='text-center'
+          >{capAndSplit(key.split(''))}: {contents || entry[key]?.toString()}</p>
+        })}
+      </div>
       <div className='grid grid-cols-4 items-center gap-4'>
         <Label htmlFor='recipient'
           className='text-center'

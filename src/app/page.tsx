@@ -60,8 +60,15 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 // USE UUID IN VAULT ACTIONS, in function and error handling
 //  - But maintain the idea that one owner cant have multiple entries with the same service name
 // Add a button to pending shares form to remove shared entry from DB without adding it to vault
+// Add a link in decryptPassword to reset users vault
+//  - This will send a DELETE request to /api/vault and reset the users vault
+//  - This is useful if a user has forgetten their password
 // Clean up vaultActions, tableOptions, as well as shareForm and/or customDialog
-// Create dialog to share multiple
+// [ DONE ] Create dialog to share multiple
+// [ DONE ] Fix pending shares, if username does not exist in sharedWith, add that entry to existing entries,
+//  - [ DONE ] this way an unshared entry cant be seen in pending shares
+//  - [ DONE ] This would happen if userA shares and entry with userB and then removes userB from share list
+//    - [ DONE ] The db will still contain a pending share for userB, that does not exist in their vault, so it will show up under pending
  
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();

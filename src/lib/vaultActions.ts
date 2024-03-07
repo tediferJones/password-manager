@@ -146,17 +146,24 @@ export const actionErrors: ActionErrors = {
     'This UUID already exists': (vault, entry) => {
       // This will probably never happen, but if it did happen it would be very problematic
       return vault.some(existing => existing.uuid === entry.uuid)
-    }
+    },
   },
   update: {
-    'New service name already exists': (vault, entry) => {
-      return vault.some(existing => existing.service === entry.service && existing.owner === entry.owner)
-    },
     'Cannot update this entry, you are not the owner': (vault, entry, userInfo) => {
       return entry.owner !== userInfo.username
+    },
+    'New service name already exists': (vault, entry, userInfo) => {
+      return vault.some(existing => (
+        existing.uuid !== entry.uuid &&
+          existing.service === entry.service 
+      ))
+    },
+  },
+  remove: {
+    'UUID not found': (vault, entry, userInfo) => {
+      return !vault.some(existing => existing.uuid === entry.uuid)
     }
   },
-  remove: {},
   share: {
     // These can probably just be moved to the update function,
     // BUT this does provide a certain level of clarity in components

@@ -65,7 +65,6 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
           <p>{`( ${row.original.sharedWith.length} )`}</p>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => {
-          console.log(row.original)
           setDetailIsOpen(!detailIsOpen)
         }}>
           Details
@@ -106,8 +105,6 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         formData={[row.original]}
         submitFunc={async (e, state) => {
           e.preventDefault();
-          // console.log('initial submit func', e, state)
-          // console.log(e.currentTarget.usernameIsValid.ariaChecked)
           const recipient = e.currentTarget.recipient.value;
           state.setErrors([])
 
@@ -121,14 +118,11 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
             sharedWith: row.original.sharedWith.concat(recipient),
           }])
 
-          console.log('edit vault errors', error)
           if (error) {
             state.setErrors([error])
           }
-          // error ? state.setErrors([error]) : state.setIsOpen(false);
         }}
         deleteFunc={(e, state) => {
-          console.log('inside delteFunc', e, state)
           e.preventDefault();
           const entry = state.getCurrentEntry();
           if (!entry) return
@@ -136,7 +130,6 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
             ...entry,
             sharedWith: entry.sharedWith.filter(username => username !== e.currentTarget.value)
           }])
-          state.setIsOpen(true)
         }}
       />
       <CustomDialog 
