@@ -1,4 +1,4 @@
-import { ActionErrors, Entry, VaultActions } from '@/types';
+import { ActionErrors, ActionFunc, Entry, VaultActions } from '@/types';
 import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
 
 async function uploadEntry(entry: Entry, username: string, salt: string, iv: string, tryCount = 0) {
@@ -49,9 +49,30 @@ function deleteHandler(entry: Entry, recipients: string[], newSharedWith: string
   })
 }
 
-export const vaultActions: VaultActions = {
+const basicActions: { [key in 'add' | 'remove' | 'update']: ActionFunc } = {
   add: (vault, entries, userInfo) => {
     return vault.concat(entries)
+  },
+  remove: (vault, entries, userInfo) => {
+    const entryIds = entries.map(entry => entry.uuid);
+    return vault.filter(existing => !entryIds.includes(existing.uuid));
+  },
+  update: (vault, entries, userInfo) => {
+    return basicActions.add(
+      basicActions.remove(vault, entries, userInfo),
+      entries
+        // Add entry as long as you are the owner or your username is included in sharedWith
+        .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
+        .map(entry => ({ ...entry, date: new Date() })),
+      userInfo,
+    )
+  },
+}
+
+export const vaultActions: VaultActions = {
+  add: (vault, entries, userInfo) => {
+    return basicActions.add(vault, entries, userInfo)
+    // return vault.concat(entries)
   },
   remove: (vault, entries, userInfo) => {
     // CASE 1 & 2
@@ -66,10 +87,11 @@ export const vaultActions: VaultActions = {
         isOwner ? [] : newShareList,
       )
     })
+    return basicActions.remove(vault, entries, userInfo)
 
     // On remove we want run the above code, but not when updating via 'auto' command
-    const entryIds = entries.map(entry => entry.uuid);
-    return vault.filter(existing => !entryIds.includes(existing.uuid));
+    // const entryIds = entries.map(entry => entry.uuid);
+    // return vault.filter(existing => !entryIds.includes(existing.uuid));
   },
   update: (vault, entries, userInfo) => {
     // CASE 3
@@ -87,17 +109,19 @@ export const vaultActions: VaultActions = {
       } 
     })
 
-    const entryIds = entries.map(entry => entry.uuid);
-    return vaultActions.add(
-      vault.filter(existing => !entryIds.includes(existing.uuid)),
-      entries
-        // Add entry as long as you are the owner or your username is included in sharedWith
-        .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
-        .map(entry => ({ ...entry, date: new Date() })),
-      userInfo,
-    )
+    return basicActions.update(vault, entries, userInfo)
+    // const entryIds = entries.map(entry => entry.uuid);
+    // return vaultActions.add(
+    //   vault.filter(existing => !entryIds.includes(existing.uuid)),
+    //   entries
+    //     // Add entry as long as you are the owner or your username is included in sharedWith
+    //     .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
+    //     .map(entry => ({ ...entry, date: new Date() })),
+    //   userInfo,
+    // )
   },
   share: (vault, entries, userInfo) => {
+    // return basicActions.update(vault, entries, userInfo)
     return vaultActions.update(vault, entries, userInfo)
   },
   unshare: (vault, entries, userInfo) => {
@@ -114,27 +138,25 @@ export const vaultActions: VaultActions = {
         )
       }
     })
-
+    // return basicActions.update(vault, entries, userInfo)
     return vaultActions.update(vault, entries, userInfo)
   },
   pending: (vault, entries, userInfo) => {
-    entries.forEach(entry => {
-      deleteShare(entry.uuid)
-    })
-    return vaultActions.add(vault, entries, userInfo)
+    entries.forEach(entry => deleteShare(entry.uuid))
+    return basicActions.add(vault, entries, userInfo)
+    // return vaultActions.add(vault, entries, userInfo)
   },
   auto: (vault, entries, userInfo) => {
-    entries.forEach(entry => {
-      deleteShare(entry.uuid)
-    })
-    const entryIds = entries.map(entry => entry.uuid);
-    return vaultActions.add(
-      vault.filter(existing => !entryIds.includes(existing.uuid)),
-      entries
-        .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
-        .map(entry => ({ ...entry, date: new Date() })),
-      userInfo,
-    )
+    entries.forEach(entry => deleteShare(entry.uuid))
+    return basicActions.update(vault, entries, userInfo)
+    // const entryIds = entries.map(entry => entry.uuid);
+    // return vaultActions.add(
+    //   vault.filter(existing => !entryIds.includes(existing.uuid)),
+    //   entries
+    //     .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
+    //     .map(entry => ({ ...entry, date: new Date() })),
+    //   userInfo,
+    // )
   }
 }
 
@@ -157,6 +179,9 @@ export const actionErrors: ActionErrors = {
         existing.uuid !== entry.uuid &&
           existing.service === entry.service 
       ))
+    },
+    'UUID not found': (vault, entry, userInfo) => {
+      return !vault.some(existing => existing.uuid === entry.uuid)
     },
   },
   remove: {

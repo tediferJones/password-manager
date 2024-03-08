@@ -67,4 +67,5 @@ export type {
   Actions,
   VaultActions,
   ActionErrors,
+  ActionFunc,
 }

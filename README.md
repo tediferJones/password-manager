@@ -1,32 +1,36 @@
 # password-manager
 
-What is the stack and how are we gunna do this?
+An encrypted password manager that allows you to securely store, generate and share passwords.
 
-NextJS app
-Clerk auth
-Turso database
-drizzle orm
-shadcnui style library
-Some client side crypto library
-Can we do all of this in bun?
-trpc?
+### Built with:
+- NextJS
+- Clerk
+- Turso
+- Drizzle
+- ShadcnUI
 
-User logs in with clerk
-Client will fetch encrypted vault and salt for decryption key from server, if the user is authenticated
-Client must then enter the secret part of the decryption key
-    - The secret key + key salt from database will form the full decryption key
-Once decrypted the user can modify the object as they wish
-To save changes, encrypt the object with the full decryption key, and send it to the server
-    - The server will update the user record with the new encrypted vault
+## How it works
+This app uses 
+[PBKDF2](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#pbkdf2_2)
+to implement password based encryption. You're vault is always sent and received
+in an encrypted state, and your decryption password never leaves your machine.
+This way your passwords are always secure. In addition, every time your vault changes
+it will be re-encrypted and uploaded to the database with a new IV. The downside
+of this strategy is that if a user forgets their decryption password there is no
+way to restore the vault.
 
-If userA wants to share a password with userB
-userA will the other person's username (userB)
-userA's password will be encrypted with the key usernameA + usernameB
-this encrypted password is then sent to the server, it will be saved in a seperate table called sharedPasswords
-    sharedPasswords will have 2 columns, usernameToShareWith and encryptedPassword
-When userB reloads the page, it will send a fetch request to check if there are any new shared passwords for this user
-If there is, they will be returned to the user
-The user must then enter username of the sender (userA) and then the password can be decrypted and added to the currentUsers password list
+If a user chooses to share an entry, a copy of this entry will be encrypted with
+the recipients username and sent to the share table. The next time the recipient
+logs in they can choose to accept or reject the pending share, if accepted the share
+will be added to their vault and deleted from the share table. From here if the
+owner updates the entry, new copies of the entry will be sent to each user in the
+share list. Entries can only be updated or shared by the owner, although a recipient
+could manually copy the entry and share it with who ever they want.
 
-A shared password needs to track who it has been shared with, that way when the password gets updated, we can instally update it for all clients it have been shared with
-If we give each shared password a unique ID, then users wont have to re-enter the sender's username when the password updates
+Managing shared entries is easy. If a recipient deletes a shared password from
+their vault, then they will be removed from the share list and an automatic update
+will be triggered for all other users it has been shared with, including the owner.
+If the owner deletes the entire entry, then this entry will be auto deleted from the
+vaults of every user it has been shared with. The owner also has the ability to
+remove individual users from each entry, prompting an auto delete for the user who
+was removed, and an auto update for all users it is still shared with.
