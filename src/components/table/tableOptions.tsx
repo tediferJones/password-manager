@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Table } from '@tanstack/react-table';
-import { Button } from '@/components/ui/button';
 import GeneratePassword from '@/components/subcomponents/generatePassword';
 import Searchbar from '@/components/table/searchbar';
 import CustomDialog from '@/components/subcomponents/customDialog';
 import { EditVaultFunction, Entry, Share } from '@/types';
 import { decrypt, getFullKey } from '@/lib/security';
 import { useUser } from '@clerk/nextjs';
+import easyFetch from '@/lib/easyFetch';
 
 export default function TableOptions({
   table,
@@ -154,6 +154,12 @@ export default function TableOptions({
         }}
         skipFunc={(e, state) => {
           e.preventDefault();
+          state.setErrors([])
+          state.setEntryOffset(state.entryOffset + 1)
+        }}
+        rejectFunc={(e, state) => {
+          e.preventDefault();
+          console.log('IMPORT SHARE DELETE FUNCTION HERE')
           state.setErrors([])
           state.setEntryOffset(state.entryOffset + 1)
         }}

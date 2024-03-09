@@ -42,6 +42,8 @@ export default function CustomDialog({
   extOpenState,
   submitText,
   deleteFunc,
+  rejectFunc,
+  extraBtns,
 }: {
     action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm' | 'details'
     submitFunc: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
@@ -53,6 +55,13 @@ export default function CustomDialog({
     extOpenState?: [boolean, Dispatch<SetStateAction<boolean>>]
     submitText?: string,
     deleteFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void,
+    rejectFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void, 
+    extraBtns?: {
+      [key: string]: { 
+        variant?: 'secondary' | 'destructive',
+        onClick: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void
+      }
+    }
 }) {
   const [errors, setErrors] = useState<string[]>([]);
   const [entryOffset, setEntryOffset] = useState(0);
@@ -172,7 +181,7 @@ export default function CustomDialog({
             <DialogClose asChild>
               <Button variant='secondary' type='button'>Close</Button>
             </DialogClose>
-            {!formData || ['delete', 'details'].includes(action) ? [] :
+            {!formData || ['delete', 'details', 'pending'].includes(action) ? [] :
               <Button variant='secondary'
                 type='button'
                 onClick={() => {
@@ -202,6 +211,18 @@ export default function CustomDialog({
                 onClick={(e) => skipFunc(e, state)}
               >Next</Button>
             }
+            {!rejectFunc ? [] :
+              <Button variant='destructive'
+                type='button'
+                onClick={(e) => rejectFunc(e, state)}
+              >Reject</Button>
+            }
+            {!extraBtns ? [] : Object.keys(extraBtns).map(btnKey => {
+              return <Button type='button'
+                variant={extraBtns[btnKey].variant}
+                onClick={(e) => extraBtns[btnKey].onClick(e, state)}
+              >{btnKey}</Button>
+            })}
             <Button type='submit' variant={btnVariant}>
               {capAndSplit((submitText || action).split(''))}
             </Button> 

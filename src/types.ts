@@ -58,6 +58,8 @@ interface CustomDialogState {
   getCurrentEntry: () => Entry | undefined,
 }
 
+type Methods = 'GET' | 'POST' | 'DELETE';
+
 export type {
   Share,
   UserInfo,
@@ -68,4 +70,5 @@ export type {
   VaultActions,
   ActionErrors,
   ActionFunc,
+  Methods,
 }

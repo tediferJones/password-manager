@@ -1,37 +1,67 @@
 import { ActionErrors, ActionFunc, Entry, VaultActions } from '@/types';
 import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
+import easyFetch from './easyFetch';
 
-async function uploadEntry(entry: Entry, username: string, salt: string, iv: string, tryCount = 0) {
+// async function uploadEntry(entry: Entry, username: string, salt: string, iv: string, tryCount = 0) {
+async function uploadEntry(entry: Entry, username: string) {
   console.log('send share to', username, entry)
-  const maxTryCount = 10;
-  fetch('/api/share', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      recipient: await getHash(username),
-      salt,
+  const salt = getRandBase64('salt');
+  const iv = getRandBase64('iv');
+  easyFetch('/api/share', 'POST', {
+    recipient: await getHash(username),
+    uuid: await getHash(entry.uuid),
+    salt,
+    iv,
+    sharedEntry: await encrypt(
+      JSON.stringify(entry),
+      await getFullKey(username, salt),
       iv,
-      uuid: await getHash(entry.uuid),
-      sharedEntry: await encrypt(
-        JSON.stringify(entry),
-        await getFullKey(username, salt),
-        iv,
-      ),
-    })
-  }).catch(() => {
-      console.log(`request failed, trying again, ${tryCount} / ${maxTryCount}`)
-      if (tryCount < maxTryCount) uploadEntry(entry, username, salt, iv, tryCount + 1)
-    })
+    ),
+  })
+  // const maxTryCount = 10;
+  // fetch('/api/share', {
+  //   method: 'POST',
+  //   headers: { 'content-type': 'application/json' },
+  //   body: JSON.stringify({
+  //     recipient: await getHash(username),
+  //     salt,
+  //     iv,
+  //     uuid: await getHash(entry.uuid),
+  //     sharedEntry: await encrypt(
+  //       JSON.stringify(entry),
+  //       await getFullKey(username, salt),
+  //       iv,
+  //     ),
+  //   })
+  // }).catch(() => {
+  //     console.log(`request failed, trying again, ${tryCount} / ${maxTryCount}`)
+  //     if (tryCount < maxTryCount) uploadEntry(entry, username, salt, iv, tryCount + 1)
+  //   })
 }
+
+// type Methods = 'GET' | 'POST' | 'DELETE';
+// function easyFetch(route: string, method: Methods, body?: any, retryCount = 0) {
+//   return fetch(route, {
+//     method,
+//     headers: { 'content-type': 'application/json' },
+//     body: JSON.stringify(body),
+//   }).then(res => res.json())
+//     .catch(err => {
+//       if(retryCount < 5) {
+//         easyFetch(route, method, body, retryCount + 1)
+//       }
+//     })
+// }
 
 async function deleteShare(uuid: string) {
   // use module to retry fetch if it fails
   console.log('delete share from table')
-  fetch('/api/share', {
-    method: 'DELETE',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ uuid: await getHash(uuid) })
-  })
+  // fetch('/api/share', {
+  //   method: 'DELETE',
+  //   headers: { 'content-type': 'application/json' },
+  //   body: JSON.stringify({ uuid: await getHash(uuid) })
+  // })
+  easyFetch('/api/share', 'DELETE', { uuid: await getHash(uuid) })
 }
 
 // SHARE CASES:
@@ -43,8 +73,8 @@ function deleteHandler(entry: Entry, recipients: string[], newSharedWith: string
     uploadEntry(
       { ...entry, sharedWith: newSharedWith },
       username,
-      getRandBase64('salt'),
-      getRandBase64('iv')
+      // getRandBase64('salt'),
+      // getRandBase64('iv')
     )
   })
 }
@@ -72,7 +102,6 @@ const basicActions: { [key in 'add' | 'remove' | 'update']: ActionFunc } = {
 export const vaultActions: VaultActions = {
   add: (vault, entries, userInfo) => {
     return basicActions.add(vault, entries, userInfo)
-    // return vault.concat(entries)
   },
   remove: (vault, entries, userInfo) => {
     // CASE 1 & 2
@@ -88,10 +117,6 @@ export const vaultActions: VaultActions = {
       )
     })
     return basicActions.remove(vault, entries, userInfo)
-
-    // On remove we want run the above code, but not when updating via 'auto' command
-    // const entryIds = entries.map(entry => entry.uuid);
-    // return vault.filter(existing => !entryIds.includes(existing.uuid));
   },
   update: (vault, entries, userInfo) => {
     // CASE 3
@@ -104,24 +129,15 @@ export const vaultActions: VaultActions = {
       if (entry.owner === userInfo.username) {
         console.log('sending shares to', entry.sharedWith)
         entry.sharedWith.forEach(username => {
-          uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
+          // uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
+          uploadEntry(entry, username)
         })
       } 
     })
 
     return basicActions.update(vault, entries, userInfo)
-    // const entryIds = entries.map(entry => entry.uuid);
-    // return vaultActions.add(
-    //   vault.filter(existing => !entryIds.includes(existing.uuid)),
-    //   entries
-    //     // Add entry as long as you are the owner or your username is included in sharedWith
-    //     .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
-    //     .map(entry => ({ ...entry, date: new Date() })),
-    //   userInfo,
-    // )
   },
   share: (vault, entries, userInfo) => {
-    // return basicActions.update(vault, entries, userInfo)
     return vaultActions.update(vault, entries, userInfo)
   },
   unshare: (vault, entries, userInfo) => {
@@ -138,25 +154,15 @@ export const vaultActions: VaultActions = {
         )
       }
     })
-    // return basicActions.update(vault, entries, userInfo)
     return vaultActions.update(vault, entries, userInfo)
   },
   pending: (vault, entries, userInfo) => {
     entries.forEach(entry => deleteShare(entry.uuid))
     return basicActions.add(vault, entries, userInfo)
-    // return vaultActions.add(vault, entries, userInfo)
   },
   auto: (vault, entries, userInfo) => {
     entries.forEach(entry => deleteShare(entry.uuid))
     return basicActions.update(vault, entries, userInfo)
-    // const entryIds = entries.map(entry => entry.uuid);
-    // return vaultActions.add(
-    //   vault.filter(existing => !entryIds.includes(existing.uuid)),
-    //   entries
-    //     .filter(entry => entry.owner === userInfo.username || entry.sharedWith.includes(userInfo.username))
-    //     .map(entry => ({ ...entry, date: new Date() })),
-    //   userInfo,
-    // )
   }
 }
 

@@ -13,6 +13,8 @@ import UserSettings from '@/components/subcomponents/userSettings';
 import { encrypt, getRandBase64 } from '@/lib/security';
 import { Actions, Entry, UserInfo } from '@/types';
 import { actionErrors, vaultActions } from '@/lib/vaultActions';
+import { Toaster } from '@/components/ui/toaster';
+import { useToast } from '@/components/ui/use-toast';
 
 // Encryption key can be gotten by using the getFullKey function
 
@@ -69,11 +71,15 @@ import { actionErrors, vaultActions } from '@/lib/vaultActions';
 //  - [ DONE ] this way an unshared entry cant be seen in pending shares
 //  - [ DONE ] This would happen if userA shares and entry with userB and then removes userB from share list
 //    - [ DONE ] The db will still contain a pending share for userB, that does not exist in their vault, so it will show up under pending
+// Use extraBtns prop to replace rejectFunc and skipFunc in customDialog calls
+// Replace all fetch calls with easyFetch
+// Create handleShares module, to handle share updates and deletes
  
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
   const [vault, setVault]= useState<Entry[]>();
+  const { toast } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -118,6 +124,22 @@ export default function Home() {
     });
     if (errorMsg) return errorMsg;
 
+    // Move to vaultActions?
+    const actionTextV2: { [key in Actions]: string } = {
+      add: `Added ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
+      remove: `Removed ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
+      update: `Updated ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
+      pending: `Added ${toChange.length === 1 ? 'shared entry' : `${toChange.length} shared entries`}`,
+      share: `Shared ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
+      unshare: `Removed user(s) from ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
+      auto: `Automatically updated ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
+    }
+
+    toast({
+      title: actionTextV2[action],
+      duration: 1500,
+    })
+
     // console.log('blocking all vault changes')
     setVault(
       vaultActions[action](
@@ -149,6 +171,7 @@ export default function Home() {
           {!vault ? [] : <MyTable data={vault.toReversed()} {...{ editVault, userInfo }} />}
         </div>
       }
+      <Toaster />
     </div>
   );
 }
