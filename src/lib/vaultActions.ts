@@ -1,83 +1,5 @@
-import { ActionErrors, ActionFunc, Entry, VaultActions } from '@/types';
-import { encrypt, getFullKey, getHash, getRandBase64 } from '@/lib/security';
-import easyFetch from './easyFetch';
-
-// async function uploadEntry(entry: Entry, username: string, salt: string, iv: string, tryCount = 0) {
-async function uploadEntry(entry: Entry, username: string) {
-  console.log('send share to', username, entry)
-  const salt = getRandBase64('salt');
-  const iv = getRandBase64('iv');
-  easyFetch('/api/share', 'POST', {
-    recipient: await getHash(username),
-    uuid: await getHash(entry.uuid),
-    salt,
-    iv,
-    sharedEntry: await encrypt(
-      JSON.stringify(entry),
-      await getFullKey(username, salt),
-      iv,
-    ),
-  })
-  // const maxTryCount = 10;
-  // fetch('/api/share', {
-  //   method: 'POST',
-  //   headers: { 'content-type': 'application/json' },
-  //   body: JSON.stringify({
-  //     recipient: await getHash(username),
-  //     salt,
-  //     iv,
-  //     uuid: await getHash(entry.uuid),
-  //     sharedEntry: await encrypt(
-  //       JSON.stringify(entry),
-  //       await getFullKey(username, salt),
-  //       iv,
-  //     ),
-  //   })
-  // }).catch(() => {
-  //     console.log(`request failed, trying again, ${tryCount} / ${maxTryCount}`)
-  //     if (tryCount < maxTryCount) uploadEntry(entry, username, salt, iv, tryCount + 1)
-  //   })
-}
-
-// type Methods = 'GET' | 'POST' | 'DELETE';
-// function easyFetch(route: string, method: Methods, body?: any, retryCount = 0) {
-//   return fetch(route, {
-//     method,
-//     headers: { 'content-type': 'application/json' },
-//     body: JSON.stringify(body),
-//   }).then(res => res.json())
-//     .catch(err => {
-//       if(retryCount < 5) {
-//         easyFetch(route, method, body, retryCount + 1)
-//       }
-//     })
-// }
-
-async function deleteShare(uuid: string) {
-  // use module to retry fetch if it fails
-  console.log('delete share from table')
-  // fetch('/api/share', {
-  //   method: 'DELETE',
-  //   headers: { 'content-type': 'application/json' },
-  //   body: JSON.stringify({ uuid: await getHash(uuid) })
-  // })
-  easyFetch('/api/share', 'DELETE', { uuid: await getHash(uuid) })
-}
-
-// SHARE CASES:
-// 1.) user deletes entry
-// 2.) owner deletes entry
-// 3.) owner removes a user from entry
-function deleteHandler(entry: Entry, recipients: string[], newSharedWith: string[]) {
-  recipients.forEach(username => {
-    uploadEntry(
-      { ...entry, sharedWith: newSharedWith },
-      username,
-      // getRandBase64('salt'),
-      // getRandBase64('iv')
-    )
-  })
-}
+import { ActionErrors, ActionFunc, VaultActions } from '@/types';
+import { deleteShares, shareHandler } from '@/lib/shareManager';
 
 const basicActions: { [key in 'add' | 'remove' | 'update']: ActionFunc } = {
   add: (vault, entries, userInfo) => {
@@ -104,64 +26,27 @@ export const vaultActions: VaultActions = {
     return basicActions.add(vault, entries, userInfo)
   },
   remove: (vault, entries, userInfo) => {
-    // CASE 1 & 2
-    // If owner, send delete request to all in sharedWith
-    // If not owner, send updated entry (without user) to all in sharedWith (except for user)
-    entries.forEach(entry => {
-      const newShareList = entry.sharedWith.filter(username => username !== userInfo.username);
-      const isOwner = entry.owner === userInfo.username
-      deleteHandler(
-        entry,
-        isOwner ? entry.sharedWith : newShareList.concat(entry.owner),
-        isOwner ? [] : newShareList,
-      )
-    })
+    shareHandler('remove', vault, entries, userInfo);
     return basicActions.remove(vault, entries, userInfo)
   },
   update: (vault, entries, userInfo) => {
-    // CASE 3
-    // Removing a user from shared list is just an update
-    // But instead of operating on the new share list we need to operate on the old share list
-    // If we acted on updated share list, we wouldn't know which user is supposed to auto-delete the shared entry
-    entries.forEach(entry => {
-      // You can only update an entry if you are the owner, this check is kind of pointless
-      // We only use update action in rowActions and tableOptions components
-      if (entry.owner === userInfo.username) {
-        console.log('sending shares to', entry.sharedWith)
-        entry.sharedWith.forEach(username => {
-          // uploadEntry(entry, username, getRandBase64('salt'), getRandBase64('iv'))
-          uploadEntry(entry, username)
-        })
-      } 
-    })
-
+    shareHandler('update', vault, entries, userInfo);
     return basicActions.update(vault, entries, userInfo)
   },
   share: (vault, entries, userInfo) => {
+    // Should probably just merge this into update
     return vaultActions.update(vault, entries, userInfo)
   },
   unshare: (vault, entries, userInfo) => {
-    entries.forEach(entry => {
-      const oldSharedWith = vault.find(existing => existing.uuid === entry.uuid)
-      if (oldSharedWith) {
-        const removedUsers = oldSharedWith.sharedWith.filter(existingUser => {
-          return !entry.sharedWith.includes(existingUser)
-        })
-        deleteHandler(
-          entry,
-          removedUsers,
-          entry.sharedWith
-        )
-      }
-    })
-    return vaultActions.update(vault, entries, userInfo)
+    shareHandler('unshare', vault, entries, userInfo);
+    return basicActions.update(vault, entries, userInfo)
   },
   pending: (vault, entries, userInfo) => {
-    entries.forEach(entry => deleteShare(entry.uuid))
+    deleteShares(entries)
     return basicActions.add(vault, entries, userInfo)
   },
   auto: (vault, entries, userInfo) => {
-    entries.forEach(entry => deleteShare(entry.uuid))
+    deleteShares(entries)
     return basicActions.update(vault, entries, userInfo)
   }
 }

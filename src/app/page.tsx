@@ -51,6 +51,7 @@ import { useToast } from '@/components/ui/use-toast';
 //  - Check api routes, remove user is logged logic
 // Due to the way we share entries, usernames are now considered sensitive data
 //  - Thus we should change the way vaults are stored in the DB so that username is a hash of the current user's username
+//  - Also remove unique requirement from salt rows, we cant garuntee salt will always be unique
 // UserInfo and Share types are essentially the same
 //  - Think about merging these types into EncryptedData or something like that
 // There is a bug in vaultActions module
