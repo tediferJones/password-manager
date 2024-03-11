@@ -75,6 +75,8 @@ import { useToast } from '@/components/ui/use-toast';
 // Use extraBtns prop to replace rejectFunc and skipFunc in customDialog calls
 // Replace all fetch calls with easyFetch
 // Create handleShares module, to handle share updates and deletes
+// Base64 validation: 'myBase64String'.match(/^[-A-Za-z0-9+/]*={0,3}$/)
+//  - If this returns null, it is not valid base64
  
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();

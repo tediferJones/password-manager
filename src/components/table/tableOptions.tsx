@@ -6,7 +6,7 @@ import CustomDialog from '@/components/subcomponents/customDialog';
 import { EditVaultFunction, Entry, Share } from '@/types';
 import { decrypt, getFullKey } from '@/lib/security';
 import { useUser } from '@clerk/nextjs';
-import easyFetch from '@/lib/easyFetch';
+import { deleteShares } from '@/lib/shareManager';
 
 export default function TableOptions({
   table,
@@ -162,6 +162,16 @@ export default function TableOptions({
           console.log('IMPORT SHARE DELETE FUNCTION HERE')
           state.setErrors([])
           state.setEntryOffset(state.entryOffset + 1)
+
+          // This will only delete the share from the DB
+          // We should also remove the user from the sharedWith list
+          // The easiest way to do this, is just to add and then immediately remove the entry
+          //
+          // const entry = state.getCurrentEntry();
+          // if (entry) {
+          //   deleteShares([entry])
+          //   setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
+          // }
         }}
       />
 
