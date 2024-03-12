@@ -12,72 +12,40 @@ import MyTable from '@/components/table/myTable';
 import UserSettings from '@/components/subcomponents/userSettings';
 import { encrypt, getRandBase64 } from '@/lib/security';
 import { Actions, Entry, UserInfo } from '@/types';
-import { actionErrors, vaultActions } from '@/lib/vaultActions';
+import { actionDialog, actionErrors, vaultActions } from '@/lib/vaultActions';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/components/ui/use-toast';
+import easyFetch from '@/lib/easyFetch';
 
-// Encryption key can be gotten by using the getFullKey function
-
-// THESE METHODS IMPLEMENT PBKDF2, FOR PASSWORD BASED ENCRYPTION
-// More Info: https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#pbkdf2_2
-//
 // Apparently salt and iv can be stored in the db next to the encrypted data
 //   - Salt should always be unique (we cant guarantee every password is unique)
 //   - Rotate IV every time we re-encrypt the data
 //   - Recommended to iterate hash 2^(Current Year - 2000) times, so we want 2^24 which is 16777216
 // More Info: https://security.stackexchange.com/questions/177990/what-is-the-best-practice-to-store-private-key-salt-and-initialization-vector-i
 //
-// What to do next:
+// Optional:
 // Edit lib/security, all functions should take salt and iv as base64 strings
 //  - see if we can use base64 everywhere, especially for the plaintext and password
-// Salt and IV are always recycled, fix this, see notes above
-//  - IV is now changed everytime vault is updated
-//  - Make sure salt is unique in api when new vault is created
-// Add an extra conditional to the render chain that checks for a vault, else displays an error message
-//  - Move loading spinner to its own component
-// Implement input validation module from chat-bun
-//  - FOR BACKEND
-//    - All we can really do is check if salt and iv are a reasonable length
-//    - We could also check if all strings are base64
-//  - FOR FRONTEND
-//    - We can only check that all fields are required and of reasonable length
-//      - This can all be done through html form validation
 // Add a 'syncing' indicator (like a red/green line)
 //  - when vault changes display 'out of sync' indicator (red)
 //  - when server returns set status based on return res status (if status === 200 then vault is in sync)
 // Add index.tsx to src/components?
 //  - That way we can import multiple components in one line
-// Apparently we dont need to verify users in api routes, this is already taken care of by clerk
-//  - Check api routes, remove user is logged logic
-// Due to the way we share entries, usernames are now considered sensitive data
-//  - Thus we should change the way vaults are stored in the DB so that username is a hash of the current user's username
-//  - Also remove unique requirement from salt rows, we cant garuntee salt will always be unique
+//
+// What to do next:
+// Add an extra conditional to the render chain that checks for a vault, else displays an error message
+//  - Move loading spinner to its own component
 // UserInfo and Share types are essentially the same
 //  - Think about merging these types into EncryptedData or something like that
-// There is a bug in vaultActions module
-//  - If current user is not the owner of the entry we should return an error message
-// NEED TO TEST VAULT ACTION FUNCTIONS, editVault AND ERROR HANDLING
 // We should probably display owner and shared with in pending form, this will help identify where the record comes from
-// Move upload function from vaultActions to its own module
-//  - Make it something like easyFetch()
-// USE UUID IN VAULT ACTIONS, in function and error handling
-//  - But maintain the idea that one owner cant have multiple entries with the same service name
-// Add a button to pending shares form to remove shared entry from DB without adding it to vault
-// Add a link in decryptPassword to reset users vault
-//  - This will send a DELETE request to /api/vault and reset the users vault
-//  - This is useful if a user has forgetten their password
-// Clean up vaultActions, tableOptions, as well as shareForm and/or customDialog
-// [ DONE ] Create dialog to share multiple
-// [ DONE ] Fix pending shares, if username does not exist in sharedWith, add that entry to existing entries,
-//  - [ DONE ] this way an unshared entry cant be seen in pending shares
-//  - [ DONE ] This would happen if userA shares and entry with userB and then removes userB from share list
-//    - [ DONE ] The db will still contain a pending share for userB, that does not exist in their vault, so it will show up under pending
-// Use extraBtns prop to replace rejectFunc and skipFunc in customDialog calls
-// Replace all fetch calls with easyFetch
-// Create handleShares module, to handle share updates and deletes
-// Base64 validation: 'myBase64String'.match(/^[-A-Za-z0-9+/]*={0,3}$/)
-//  - If this returns null, it is not valid base64
+// Clean up comments in UserSettings and tableOptions components
+// Do we want to use Actions type to replace action type in CustomDialog?
+//  - The types do not entirely overlap, which could be problematic
+// Fix submit button text for Pending dialog
  
+// Added base64 validation, converted user table to use username hash
+// Added vault delete route, and connected button to password form
+
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
@@ -87,10 +55,7 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       if (!userInfo) {
-        const res = await fetch('/api/vault');
-        const userInfo: UserInfo = await res.json();
-        // console.log('Fetched user info', userInfo)
-
+        const userInfo: UserInfo = await easyFetch('/api/vault', 'GET')
         setUserInfo({
           username: userInfo.username,
           vault: userInfo.vault || '',
@@ -99,18 +64,13 @@ export default function Home() {
         })
       } else if (vault && fullKey) {
         console.log('Pushing vault to DB')
-        // console.log(JSON.stringify(vault))
         const newIv = getRandBase64('iv')
         const newUserInfo = {
           ...userInfo,
           iv: newIv,
           vault: await encrypt(JSON.stringify(vault), fullKey, newIv),
         }
-        fetch('/api/vault', {
-          method: 'POST',
-          headers:  { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newUserInfo),
-        });
+        easyFetch('/api/vault', 'POST', newUserInfo)
         setUserInfo(newUserInfo);
       } 
     })();
@@ -127,23 +87,11 @@ export default function Home() {
     });
     if (errorMsg) return errorMsg;
 
-    // Move to vaultActions?
-    const actionTextV2: { [key in Actions]: string } = {
-      add: `Added ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
-      remove: `Removed ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
-      update: `Updated ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
-      pending: `Added ${toChange.length === 1 ? 'shared entry' : `${toChange.length} shared entries`}`,
-      share: `Shared ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
-      unshare: `Removed user(s) from ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
-      auto: `Automatically updated ${toChange.length === 1 ? 'entry' : `${toChange.length} entries`}`,
-    }
-
     toast({
-      title: actionTextV2[action],
+      title: actionDialog[action](toChange.length),
       duration: 1500,
     })
 
-    // console.log('blocking all vault changes')
     setVault(
       vaultActions[action](
         vault,

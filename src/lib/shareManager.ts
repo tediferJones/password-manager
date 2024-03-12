@@ -32,12 +32,10 @@ export async function uploadShares(entry: Entry, users: string[]) {
 type shareActions = 'update' | 'remove' | 'unshare';
 export function shareHandler(action: shareActions, vault: Entry[], entries: Entry[], userInfo: UserInfo) {
   // There are 4 cases
-  // basic update (can only be done by owner, so just send newEntry to all sharedWith)
-  // entry removed
-  //  - If owner, send sharedWith = []
-  //  - If not owner, remove yourself from sharedWith, send to remaining users and owner
-  // Owner removes user (unshare)
-  //  - Send new share to all users including removed user
+  // 1. Owner updates entry, send newEntry to all sharedWith
+  // 2. Owner removes entire entry, set sharedWith = [], send this new entry to all users in sharedWith
+  // 3. User removes shared entry, remove user from sharedWith, send updated entry to all users and owner
+  // 4. Owner removes a user (unshare), send updated entry to all users in old sharedWith, including removed user
 
   const sendTo: { [key in shareActions]: (entry: Entry) => string[] } = {
     remove: (entry) => {
@@ -58,16 +56,12 @@ export function shareHandler(action: shareActions, vault: Entry[], entries: Entr
   }
 
   entries.forEach(entry => {
-    let newSharedWith = entry.sharedWith;
-    if (action === 'remove') {
-      if (entry.owner === userInfo.username) {
-        newSharedWith = [];
-      } else {
-        newSharedWith = entry.sharedWith.filter(username => username !== userInfo.username)
-      }
-    }
     uploadShares(
-      { ...entry, sharedWith: newSharedWith },
+      action !== 'remove' ? entry : {
+        ...entry,
+        sharedWith: entry.owner === userInfo.username ? [] : 
+          entry.sharedWith.filter(username => username !== userInfo.username)
+      },
       sendTo[action](entry)
     )
   })

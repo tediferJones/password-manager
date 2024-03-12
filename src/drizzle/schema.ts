@@ -7,7 +7,7 @@ import { text, sqliteTable, integer } from 'drizzle-orm/sqlite-core';
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
-  salt: text('salt').notNull().unique(),
+  salt: text('salt').notNull(),
   iv: text('iv').notNull(),
   vault: text('vault').notNull(),
 });
@@ -15,7 +15,7 @@ export const users = sqliteTable('users', {
 export const share = sqliteTable('share', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   recipient: text('recipient').notNull(),
-  salt: text('salt').notNull().unique(),
+  salt: text('salt').notNull(),
   iv: text('iv').notNull(),
   sharedEntry: text('sharedEntry').notNull(),
   uuid: text('uuid').notNull(),

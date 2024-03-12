@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { Table } from '@tanstack/react-table';
 import GeneratePassword from '@/components/subcomponents/generatePassword';
 import Searchbar from '@/components/table/searchbar';
 import CustomDialog from '@/components/subcomponents/customDialog';
 import { EditVaultFunction, Entry, Share } from '@/types';
 import { decrypt, getFullKey } from '@/lib/security';
-import { useUser } from '@clerk/nextjs';
-import { deleteShares } from '@/lib/shareManager';
+import { deleteShares, uploadShares } from '@/lib/shareManager';
 
 export default function TableOptions({
   table,
@@ -46,11 +46,12 @@ export default function TableOptions({
         return obj
       }, { newShares: [], existingShares: [] } as { newShares: Entry[], existingShares: Entry[] })
 
+      let delay: NodeJS.Timeout | undefined;
       if (entries.existingShares.length) {
         // This must be run in a timeout because react does this goofy double rending thing
         // If we immediately edit the vault, the delete request wont be processed by the time we re-fetch the shares
         // CONSIDER CLEARING THIS TIME OUT, JUST LIKE IN shareForm component
-        setTimeout(() => {
+        delay = setTimeout(() => {
           console.log('error auto editing vault', 
             editVault('auto', entries.existingShares)
           )
@@ -59,6 +60,7 @@ export default function TableOptions({
 
       console.log('Fetched entries', entries)
       setPendingShares(entries.newShares)
+      return () => clearTimeout(delay)
     })();
   }, []);
 
@@ -99,10 +101,15 @@ export default function TableOptions({
           }])
           error ? state.setErrors([error]) : currentRow.toggleSelected(false);
         }}
-        skipFunc={(e, state) => {
-          e.preventDefault();
-          state.setErrors([])
-          table.getFilteredSelectedRowModel().rows[0].toggleSelected(false);
+        extraBtns={{
+          Next: {
+            variant: 'secondary',
+            onClick: (e, state) => {
+              e.preventDefault();
+              state.setErrors([])
+              table.getFilteredSelectedRowModel().rows[0].toggleSelected(false);
+            }
+          }
         }}
       />
 
@@ -123,11 +130,6 @@ export default function TableOptions({
           }])
           error ? state.setErrors([error]) : state.formRef.current?.reset();
         }}
-        skipFunc={(e, state) => {
-          e.preventDefault();
-          state.setErrors([])
-          table.getFilteredSelectedRowModel().rows[state.entryOffset].toggleSelected(false);
-        }}
         deleteFunc={(e, state) => {
           console.log('inside delteFunc', e, state)
           e.preventDefault();
@@ -137,6 +139,16 @@ export default function TableOptions({
             ...entry,
             sharedWith: entry.sharedWith.filter(username => username !== e.currentTarget.value)
           }])
+        }}
+        extraBtns={{
+          Next: {
+            variant: 'secondary',
+            onClick: (e, state) => {
+              e.preventDefault();
+              state.setErrors([])
+              table.getFilteredSelectedRowModel().rows[state.entryOffset].toggleSelected(false);
+            }
+          }
         }}
       />
 
@@ -152,26 +164,32 @@ export default function TableOptions({
           error ? state.setErrors([error]) : 
             setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
         }}
-        skipFunc={(e, state) => {
-          e.preventDefault();
-          state.setErrors([])
-          state.setEntryOffset(state.entryOffset + 1)
-        }}
-        rejectFunc={(e, state) => {
-          e.preventDefault();
-          console.log('IMPORT SHARE DELETE FUNCTION HERE')
-          state.setErrors([])
-          state.setEntryOffset(state.entryOffset + 1)
-
-          // This will only delete the share from the DB
-          // We should also remove the user from the sharedWith list
-          // The easiest way to do this, is just to add and then immediately remove the entry
-          //
-          // const entry = state.getCurrentEntry();
-          // if (entry) {
-          //   deleteShares([entry])
-          //   setPendingShares(pendingShares.toSpliced(state.entryOffset, 1))
-          // }
+        extraBtns={{
+          Next: {
+            variant: 'secondary',
+            onClick: (e, state) => {
+              e.preventDefault();
+              state.setErrors([])
+              state.setEntryOffset(state.entryOffset + 1)
+            }
+          },
+          Reject: {
+            variant: 'destructive',
+            onClick: (e, state) => {
+              e.preventDefault();
+              state.setErrors([])
+              const entry = state.getCurrentEntry();
+              if (entry) {
+                const newShareList = entry.sharedWith.filter(user => user !== username)// .concat(entry.owner)
+                uploadShares(
+                  { ...entry, sharedWith: newShareList },
+                  newShareList.concat(entry.owner)
+                );
+                deleteShares([ entry ]);
+                setPendingShares(pendingShares.toSpliced(state.entryOffset, 1));
+              }
+            }
+          }
         }}
       />
 

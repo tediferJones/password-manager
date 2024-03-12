@@ -37,12 +37,10 @@ export default function CustomDialog({
   description,
   counter,
   formData,
-  skipFunc,
   confirmFunc,
   extOpenState,
   submitText,
   deleteFunc,
-  rejectFunc,
   extraBtns,
 }: {
     action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm' | 'details'
@@ -50,12 +48,10 @@ export default function CustomDialog({
     description?: string,
     counter?: number,
     formData?: Entry[],
-    skipFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void,
     confirmFunc?: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
     extOpenState?: [boolean, Dispatch<SetStateAction<boolean>>]
     submitText?: string,
     deleteFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void,
-    rejectFunc?: (e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>, state: CustomDialogState) => void, 
     extraBtns?: {
       [key: string]: { 
         variant?: 'secondary' | 'destructive',
@@ -75,7 +71,7 @@ export default function CustomDialog({
   }
 
   function getCurrentEntry() {
-    return formData ? formData[entryOffset] : undefined;
+    return formData?.[entryOffset]
   }
 
   const state: CustomDialogState = {
@@ -110,7 +106,7 @@ export default function CustomDialog({
 
   const actionTypes = {
     reset: 'Password',
-    confirm: 'PasswordReset',
+    confirm: 'Reset',
     details: ' ',
   }
   // @ts-ignore
@@ -205,20 +201,9 @@ export default function CustomDialog({
                 }}
               />
             }
-            {!skipFunc ? [] : 
-              <Button variant='secondary'
-                type='button'
-                onClick={(e) => skipFunc(e, state)}
-              >Next</Button>
-            }
-            {!rejectFunc ? [] :
-              <Button variant='destructive'
-                type='button'
-                onClick={(e) => rejectFunc(e, state)}
-              >Reject</Button>
-            }
             {!extraBtns ? [] : Object.keys(extraBtns).map(btnKey => {
               return <Button type='button'
+                key={`${action}-${btnKey}`}
                 variant={extraBtns[btnKey].variant}
                 onClick={(e) => extraBtns[btnKey].onClick(e, state)}
               >{btnKey}</Button>

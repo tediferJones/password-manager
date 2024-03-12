@@ -81,6 +81,12 @@ async function getHash(str: string) {
   ).toString('base64')
 }
 
+function isBase64(strings: string[]) {
+  return strings.every(str => {
+    return str.match(/^[-A-Za-z0-9+/]*={0,3}$/)
+  })
+}
+
 export {
   encrypt,
   decrypt,
@@ -89,4 +95,5 @@ export {
   charTypes,
   getRandPwd,
   getHash,
+  isBase64,
 }

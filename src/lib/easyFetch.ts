@@ -4,7 +4,7 @@ export default async function easyFetch(route: string, method: Methods, body?: a
   return fetch(route, {
     method,
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+    body: body ? JSON.stringify(body) : undefined,
   }).then(res => res.json())
     .catch(() => {
       if(retryCount < 5) easyFetch(route, method, body, retryCount + 1)

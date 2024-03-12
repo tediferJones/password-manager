@@ -1,4 +1,4 @@
-import { ActionErrors, ActionFunc, VaultActions } from '@/types';
+import { ActionErrors, ActionFunc, Actions, VaultActions } from '@/types';
 import { deleteShares, shareHandler } from '@/lib/shareManager';
 
 const basicActions: { [key in 'add' | 'remove' | 'update']: ActionFunc } = {
@@ -61,6 +61,11 @@ export const actionErrors: ActionErrors = {
       return vault.some(existing => existing.uuid === entry.uuid)
     },
   },
+  remove: {
+    'UUID not found': (vault, entry, userInfo) => {
+      return !vault.some(existing => existing.uuid === entry.uuid)
+    }
+  },
   update: {
     'Cannot update this entry, you are not the owner': (vault, entry, userInfo) => {
       return entry.owner !== userInfo.username
@@ -75,15 +80,7 @@ export const actionErrors: ActionErrors = {
       return !vault.some(existing => existing.uuid === entry.uuid)
     },
   },
-  remove: {
-    'UUID not found': (vault, entry, userInfo) => {
-      return !vault.some(existing => existing.uuid === entry.uuid)
-    }
-  },
   share: {
-    // These can probably just be moved to the update function,
-    // BUT this does provide a certain level of clarity in components
-    // Update can mean a lot of things, but share just means we are modify the sharedWith array
     'Cannot share this entry, you are not the owner': (vault, entry, userInfo) => {
       return entry.owner !== userInfo.username
     },
@@ -98,4 +95,14 @@ export const actionErrors: ActionErrors = {
   unshare: {},
   pending: {},
   auto: {},
+}
+
+export const actionDialog: { [key in Actions]: (count: number) => string } = {
+  add: (count) => `Added ${count === 1 ? 'entry' : `${count} entries`}`,
+  remove: (count) => `Removed ${count === 1 ? 'entry' : `${count} entries`}`,
+  update: (count) => `Updated ${count === 1 ? 'entry' : `${count} entries`}`,
+  pending: (count) => `Added ${count === 1 ? 'shared entry' : `${count} shared entries`}`,
+  share: (count) => `Shared ${count === 1 ? 'entry' : `${count} entries`}`,
+  unshare: (count) => `Removed user(s) from ${count === 1 ? 'entry' : `${count} entries`}`,
+  auto: (count) => `Automatically updated ${count === 1 ? 'entry' : `${count} entries`}`,
 }

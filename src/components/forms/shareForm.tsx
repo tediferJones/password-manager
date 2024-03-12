@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Entry } from '@/types';
 import capAndSplit from '@/lib/capAndSplit';
+import easyFetch from '@/lib/easyFetch';
 
 export default function ShareForm({ entry }: { entry?: Entry }) {
   const [shareWith, setShareWith] = useState('');
@@ -12,8 +13,7 @@ export default function ShareForm({ entry }: { entry?: Entry }) {
     let delay: NodeJS.Timeout | undefined;
     if (shareWith) {
       delay = setTimeout(() => {
-        fetch(`/api/users/${shareWith}`)
-          .then(res => res.json())
+        easyFetch(`/api/users/${shareWith}`, 'GET')
           .then(body => {
             if (!entry) throw Error('no entry found in shareForm')
             setRecipientExists(

@@ -13,6 +13,8 @@ import { UserInfo } from '@/types'
 import { decrypt, getFullKey } from '@/lib/security'
 import PasswordForm from '@/components/forms/passwordForm'
 import GeneratePassword from '@/components/subcomponents/generatePassword'
+import CustomDialog from './subcomponents/customDialog'
+import easyFetch from '@/lib/easyFetch'
 
 export default function DecryptVault({ 
   setFullKey,
@@ -25,6 +27,7 @@ export default function DecryptVault({
   setVault: Function,
   fullKey?: CryptoKey,
 }) {
+  const [confirmIsOpen, setConfirmIsOpen] = useState(false);
   const [errorMsgs, setErrorMsgs] = useState<string[]>([])
   const form = useRef<HTMLFormElement>(null);
   const match = !userInfo.vault;
@@ -33,16 +36,22 @@ export default function DecryptVault({
     return form.current && form.current.password.value === form.current.confirm.value
   }
 
+  const confirmReset = (
+    <span className='underline cursor-pointer'
+      onClick={() => setConfirmIsOpen(!confirmIsOpen)}
+    >here</span>
+  )
+
   return (
     <AlertDialog defaultOpen open={!fullKey}>
       <AlertDialogContent onEscapeKeyDown={(e) => e.preventDefault()}>
         <AlertDialogHeader>
           <AlertDialogTitle>Please enter your password to continue</AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div>
-              <div>This password cannot be reset, you're data cannot be accessed without this password</div>
-            </div>
-          </AlertDialogDescription>
+          {match ? [] :
+            <AlertDialogDescription>
+              If you have forgetten your password, click {confirmReset} to reset your vault
+            </AlertDialogDescription>
+          }
         </AlertDialogHeader>
         {errorMsgs.length === 0 ? [] :
           <div className='text-red-500 flex justify-center'>
@@ -86,6 +95,16 @@ export default function DecryptVault({
           </AlertDialogFooter>
         </form>
       </AlertDialogContent>
+      <CustomDialog 
+        action='confirm'
+        extOpenState={[confirmIsOpen, setConfirmIsOpen]}
+        description='This will delete your existing vault. Please be careful, this action cannot be undone'
+        submitFunc={(e, state) => {
+          e.preventDefault();
+          easyFetch('/api/vault', 'DELETE')
+          window.location.reload();
+        }}
+      />
     </AlertDialog>
   )
 }
