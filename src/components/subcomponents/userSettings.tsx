@@ -50,7 +50,6 @@ export default function UserSettings({
         <DropdownMenuItem
           onSelect={(e) => {
             e.preventDefault();
-            console.log('trigger file upload')
             vaultImport.current?.click();
           }}
         >
@@ -63,19 +62,7 @@ export default function UserSettings({
             onChange={async (e) => {
               const target = e.currentTarget;
               if (target.files?.length) {
-                const test: Entry[] = JSON.parse(await target.files[0].text());
-                setVault(test);
-
-                // setVault(test.map(entry => {
-                //   return { ...entry, uuid: `${entry.owner}-${crypto.randomUUID()}` }
-                // }));
-
-                // setVault(test.map(({ newService, ...rest }) => {
-                //   return {
-                //     ...rest,
-                //     date: new Date(),
-                //   }
-                // }))
+                setVault(JSON.parse(await target.files[0].text()) as Entry[])
               }
               target.value = '';
             }}

@@ -1,10 +1,10 @@
-import { EditVaultFunction, Entry } from "@/types";
-import { ColumnDef } from "@tanstack/react-table";
-import { Checkbox } from "../ui/checkbox";
-import ColumnHeader from "./columnHeader";
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import RowActions from "./rowActions";
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import { ColumnDef } from '@tanstack/react-table';
+import { Checkbox } from '@/components/ui/checkbox';
+import ColumnHeader from '@/components/table/columnHeader';
+import RowActions from '@/components/table/rowActions';
+import { EditVaultFunction, Entry } from '@/types';
 
 export default function getColumnDefs(editVault: EditVaultFunction) {
   return [

@@ -118,9 +118,10 @@ export default function CustomDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {extOpenState ? [] :
         <DialogTrigger asChild>
-          <Button className='capitalize relative' variant={btnVariant} disabled={!(action === 'add' || formData && formData.length)}>
-            {triggerText}
-          </Button>
+          <Button className='capitalize relative'
+            variant={btnVariant}
+            disabled={!(action === 'add' || formData && formData.length)}
+          >{triggerText}</Button>
         </DialogTrigger>
       }
       <DialogContent>
@@ -167,7 +168,10 @@ export default function CustomDialog({
                 })}
                 <ShareForm entry={formData?.[entryOffset]} />
               </>,
-              pending: <EntryForm entry={formData?.[entryOffset]} shared={true} />,
+              pending: <>
+                <p className='text-center'>From: {formData?.[entryOffset]?.owner}</p>
+                <EntryForm entry={formData?.[entryOffset]} shared={true} />
+              </>,
               reset: <PasswordForm confirmMatch={confirmMatch} confirmOld match />,
               confirm: undefined,
               details: formData?.[entryOffset] ? <DetailForm entry={formData?.[entryOffset]}/> : [],

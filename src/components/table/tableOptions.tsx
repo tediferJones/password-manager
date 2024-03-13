@@ -7,66 +7,66 @@ import CustomDialog from '@/components/subcomponents/customDialog';
 import { EditVaultFunction, Entry, Share } from '@/types';
 import { decrypt, getFullKey } from '@/lib/security';
 import { deleteShares, uploadShares } from '@/lib/shareManager';
+import easyFetch from '@/lib/easyFetch';
 
 export default function TableOptions({
   table,
-  editVault,
+  editVault
 }: {
   table: Table<Entry>,
-  editVault: EditVaultFunction,
+  editVault: EditVaultFunction
 }) {
   const username = useUser().user?.username;
-  if (!username) throw Error('you are not logged in')
+  if (!username) throw Error('you are not logged in');
 
   const [pendingShares, setPendingShares] = useState<Entry[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const res = await fetch('/api/share')
-      const newShares: Share[] = await res.json()
-      const existingIds = table.getCoreRowModel().rows.map(row=> row.original.uuid);
-      const entries = (
-        await Promise.all(
-          newShares.map(async (share) => {
-            return JSON.parse(
-              await decrypt(
-                share.sharedEntry,
-                await getFullKey(username, share.salt),
-                share.iv,
-              )
-            ) as Entry;
-          })
-        )
+  async function getShares() {
+    if (!username) throw Error('you are not logged in');
+    const newShares: Share[] = await easyFetch('/api/share', 'GET');
+    const existingIds = table.getCoreRowModel().rows.map(row=> row.original.uuid);
+    const entries = (
+      await Promise.all(
+        newShares.map(async (share) => {
+          return JSON.parse(
+            await decrypt(
+              share.sharedEntry,
+              await getFullKey(username, share.salt),
+              share.iv,
+            )
+          ) as Entry;
+        })
       )
-      // try to use filter instead of reduce, that way entries that way existing entries that were updated can be garbage collected
-      // But we need to pass all updates to editVault at once, so we kind of need two seperate arrays
-      .reduce((obj, newEntry) => {
-        const entryExists = existingIds.includes(newEntry.uuid) || !newEntry.sharedWith.includes(username)
-        obj[entryExists ? 'existingShares' : 'newShares'].push(newEntry);
-        return obj
-      }, { newShares: [], existingShares: [] } as { newShares: Entry[], existingShares: Entry[] })
+    ).reduce((obj, newEntry) => {
+      const entryExists = existingIds.includes(newEntry.uuid) || !newEntry.sharedWith.includes(username)
+      obj[entryExists ? 'existingShares' : 'newShares'].push(newEntry);
+      return obj
+    }, { newShares: [], existingShares: [] } as { newShares: Entry[], existingShares: Entry[] })
 
-      let delay: NodeJS.Timeout | undefined;
-      if (entries.existingShares.length) {
-        // This must be run in a timeout because react does this goofy double rending thing
-        // If we immediately edit the vault, the delete request wont be processed by the time we re-fetch the shares
-        // CONSIDER CLEARING THIS TIME OUT, JUST LIKE IN shareForm component
-        delay = setTimeout(() => {
-          console.log('error auto editing vault', 
-            editVault('auto', entries.existingShares)
-          )
-        }, 500)
-      }
+    if (entries.existingShares.length) {
+      // This must be run in a timeout because react does this goofy double rending thing
+      // If we immediately edit the vault, the delete request wont be processed by the time we re-fetch the shares
+      setTimeout(() => {
+        editVault('auto', entries.existingShares)
+      }, 500)
+    }
 
-      console.log('Fetched entries', entries)
-      setPendingShares(entries.newShares)
-      return () => clearTimeout(delay)
-    })();
+    console.log('Fetched entries', entries)
+    setPendingShares(entries.newShares)
+  }
+
+  useEffect(() => {
+    // update initially and re-fetch results every 60 seconds
+    getShares();
+
+    let delay: NodeJS.Timeout | undefined
+    delay = setInterval(async () => await getShares(), 60000)
+    return () => clearInterval(delay)
   }, []);
 
   return (
-    <div className='flex items-center py-4 mx-4 gap-4 flex-wrap'>
-      <div className='flex-1 text-sm text-muted-foreground'>
+    <div className='flex items-center py-4 mx-4 gap-4 flex-wrap justify-end'>
+      <div className='m-auto ml-2 text-sm text-muted-foreground text-wrap'>
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} selected
       </div>
@@ -156,6 +156,7 @@ export default function TableOptions({
         action='pending'
         counter={pendingShares.length}
         formData={pendingShares}
+        submitText='add'
         submitFunc={(e, state) => {
           e.preventDefault();
           const entry = state.getCurrentEntry();
@@ -179,15 +180,15 @@ export default function TableOptions({
               e.preventDefault();
               state.setErrors([])
               const entry = state.getCurrentEntry();
-              if (entry) {
-                const newShareList = entry.sharedWith.filter(user => user !== username)// .concat(entry.owner)
-                uploadShares(
-                  { ...entry, sharedWith: newShareList },
-                  newShareList.concat(entry.owner)
-                );
-                deleteShares([ entry ]);
-                setPendingShares(pendingShares.toSpliced(state.entryOffset, 1));
-              }
+              if (!entry) return
+
+              const newShareList = entry.sharedWith.filter(user => user !== username);
+              uploadShares(
+                { ...entry, sharedWith: newShareList },
+                newShareList.concat(entry.owner)
+              );
+              deleteShares([ entry ]);
+              setPendingShares(pendingShares.toSpliced(state.entryOffset, 1));
             }
           }
         }}

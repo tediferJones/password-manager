@@ -1,15 +1,13 @@
 'use client';
 
-// This is nextjs's optimized way of sending images
-// import Image from 'next/image';
 import { UserButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { ToggleTheme } from '@/components/subcomponents/toggleTheme';
 import { Button } from '@/components/ui/button';
 import DecryptVault from '@/components/decryptVault';
 import MyTable from '@/components/table/myTable';
 import UserSettings from '@/components/subcomponents/userSettings';
+import Loading from '@/components/subcomponents/loading';
 import { encrypt, getRandBase64 } from '@/lib/security';
 import { Actions, Entry, UserInfo } from '@/types';
 import { actionDialog, actionErrors, vaultActions } from '@/lib/vaultActions';
@@ -33,18 +31,13 @@ import easyFetch from '@/lib/easyFetch';
 //  - That way we can import multiple components in one line
 //
 // What to do next:
-// Add an extra conditional to the render chain that checks for a vault, else displays an error message
-//  - Move loading spinner to its own component
 // UserInfo and Share types are essentially the same
 //  - Think about merging these types into EncryptedData or something like that
-// We should probably display owner and shared with in pending form, this will help identify where the record comes from
-// Clean up comments in UserSettings and tableOptions components
 // Do we want to use Actions type to replace action type in CustomDialog?
 //  - The types do not entirely overlap, which could be problematic
-// Fix submit button text for Pending dialog
- 
-// Added base64 validation, converted user table to use username hash
-// Added vault delete route, and connected button to password form
+// Remove all console.log statements
+// Style details dialog
+// Toaster should pop-up 'copied' when something is copied to the clipboard
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
@@ -103,7 +96,7 @@ export default function Home() {
 
   return (
     <div>
-      <div className='p-8 flex justify-between items-center flex-col sm:flex-row border-b-[1px] mb-8'>
+      <div className='p-8 flex justify-between items-center gap-4 flex-col sm:flex-row border-b-[1px]'>
         <h1 className='text-3xl font-bold text-center'>Password Manager</h1>
         <div className='flex items-center gap-4'>
           {userInfo && userInfo.username ? <h1 className='text-lg'>{userInfo.username}</h1> : []}
@@ -112,15 +105,13 @@ export default function Home() {
           <ToggleTheme />
         </div>
       </div>
-      {!userInfo ? 
-        <Button className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none'>
-          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-          Please wait
-        </Button> :
-        <div className='w-11/12 md:w-4/5 mx-auto pb-12'>
-          {fullKey ? [] : <DecryptVault {...{ userInfo, setFullKey, vault, setVault }} />}
-          {!vault ? [] : <MyTable data={vault.toReversed()} {...{ editVault, userInfo }} />}
-        </div>
+      {!userInfo ?  <Loading />
+        : !fullKey ? <DecryptVault {...{ userInfo, setFullKey, vault, setVault }} />
+          : vault ? <MyTable data={vault.toReversed()} {...{ editVault, userInfo }} />
+            : <Button className='p-8 text-xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'
+              variant='outline'
+              onClick={() => window.location.reload()}
+            >Something went wrong, please reload the page</Button>
       }
       <Toaster />
     </div>

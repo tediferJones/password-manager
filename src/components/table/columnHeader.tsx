@@ -6,7 +6,7 @@ import capAndSplit from "@/lib/capAndSplit";
 export default function ColumnHeader({ column }: { column: Column<Entry, unknown> }) {
   const sortDir= column.getIsSorted();
   return (
-    <div className='flex justify-between items-center w-full sm:flex-row flex-col'>
+    <div className='flex justify-between items-center w-full'>
       <p className='truncate'>{capAndSplit(column.id.split(''))}</p>
       <div className='flex items-center gap-2'>
         {!sortDir ? [] : 

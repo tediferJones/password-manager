@@ -59,17 +59,41 @@ export default function MyTable({
     },
   })
 
+  const getCustomClass: {
+    [key in 'header' | 'cell']: {
+      [key: string]: string
+    }
+  } = {
+    header: {
+      select: 'w-12',
+      service: 'max-w-0',
+      userId: 'max-w-0 sm:table-cell hidden',
+      password: 'max-w-0 md:table-cell hidden',
+      owner: 'max-w-0',
+      actions: 'w-12',
+    },
+    cell: {
+      select:   'my-auto px-0',
+      service:  'truncate max-w-0',
+      userId:   'truncate max-w-0 sm:table-cell hidden',
+      password: 'truncate max-w-0 md:table-cell hidden',
+      owner:    'truncate max-w-0',
+      actions:  'my-auto px-0',
+    }
+  }
+
   return (
-    <div className='rounded-md border'>
+    <div className='rounded-md border w-11/12 md:w-4/5 mx-auto my-8'>
       <TableOptions {...{ table, editVault }} />
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
+                console.log(header.column.id)
                 return (
                   <TableHead key={header.id}
-                    className={['actions', 'select'].includes(header.column.id) ? 'w-12' : 'max-w-0'}
+                    className={getCustomClass.header[header.column.id]}
                   >
                     {header.isPlaceholder ? null :
                       flexRender(
@@ -91,7 +115,7 @@ export default function MyTable({
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}
-                    className={['actions', 'select'].includes(cell.column.id) ? 'my-auto px-0' : 'truncate max-w-0'}
+                    className={getCustomClass.cell[cell.column.id]}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
