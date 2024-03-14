@@ -90,7 +90,6 @@ export default function MyTable({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
-                console.log(header.column.id)
                 return (
                   <TableHead key={header.id}
                     className={getCustomClass.header[header.column.id]}

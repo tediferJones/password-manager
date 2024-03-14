@@ -46,12 +46,9 @@ export default function TableOptions({
     if (entries.existingShares.length) {
       // This must be run in a timeout because react does this goofy double rending thing
       // If we immediately edit the vault, the delete request wont be processed by the time we re-fetch the shares
-      setTimeout(() => {
-        editVault('auto', entries.existingShares)
-      }, 500)
+      setTimeout(() => editVault('auto', entries.existingShares), 500)
     }
 
-    console.log('Fetched entries', entries)
     setPendingShares(entries.newShares)
   }
 
@@ -70,7 +67,7 @@ export default function TableOptions({
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} selected
       </div>
-      <GeneratePassword buttonText='Copy' />
+      <GeneratePassword buttonText='Copy' func={() => editVault('copied', [])}/>
       <CustomDialog 
         action='delete'
         description='Are you sure you want to delete these entries?'
@@ -92,7 +89,6 @@ export default function TableOptions({
           e.preventDefault();
           const [ currentRow ] = table.getFilteredSelectedRowModel().rows;
           state.setErrors([]);
-          console.log('edit vault func')
           const error = editVault('update', [{
             ...currentRow.original,
             service: e.currentTarget.service.value,
@@ -131,7 +127,6 @@ export default function TableOptions({
           error ? state.setErrors([error]) : state.formRef.current?.reset();
         }}
         deleteFunc={(e, state) => {
-          console.log('inside delteFunc', e, state)
           e.preventDefault();
           const entry = state.getCurrentEntry();
           if (!entry) return

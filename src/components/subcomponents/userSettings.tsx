@@ -40,9 +40,7 @@ export default function UserSettings({
       <DropdownMenuContent>
         <DropdownMenuLabel>Settings</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => {
-          console.log('vault data', vault)
-        }} asChild>
+        <DropdownMenuItem asChild>
           <a href={URL.createObjectURL(new File(JSON.stringify(vault, null, 2).split(''), 'tempFileName'))}
             download='exported-vault.json'
           >Export Vault</a>

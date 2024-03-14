@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
 import ColumnHeader from '@/components/table/columnHeader';
 import RowActions from '@/components/table/rowActions';
+import ShowHidePwd from '@/components/subcomponents/showHidePwd';
 import { EditVaultFunction, Entry } from '@/types';
 
 export default function getColumnDefs(editVault: EditVaultFunction) {
@@ -42,24 +41,7 @@ export default function getColumnDefs(editVault: EditVaultFunction) {
     {
       accessorKey: 'password',
       header: ({ column }) => <ColumnHeader column={column} />,
-      cell: ({ row }) => {
-        const [showPwd, setShowPwd] = useState(false);
-        return (
-          <div className='flex gap-2'>
-            <div className='w-full truncate'
-              onMouseEnter={() => setShowPwd(true)}
-              onMouseLeave={() => setShowPwd(false)}
-            >
-              {showPwd ? row.getValue('password') : '●●●●●●●●'}
-            </div>
-            <button onClick={() => setShowPwd(!showPwd)}>
-              {showPwd ? <EyeOff className='h-4 w-4' /> : 
-                <Eye className='h-4 w-4' />
-              }
-            </button>
-          </div>
-        )
-      }
+      cell: ({ row }) => <ShowHidePwd pwd={row.getValue('password')} />,
     },
     {
       accessorKey: 'owner',

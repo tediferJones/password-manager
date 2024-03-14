@@ -44,7 +44,7 @@ export default function CustomDialog({
   extraBtns,
 }: {
     action: 'add' | 'update' | 'delete' | 'share' | 'pending' | 'reset' | 'confirm' | 'details'
-    submitFunc: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
+    submitFunc?: (e: FormEvent<HTMLFormElement>, state: CustomDialogState) => void,
     description?: string,
     counter?: number,
     formData?: Entry[],
@@ -110,10 +110,10 @@ export default function CustomDialog({
     details: ' ',
   }
   // @ts-ignore
-  const actionType = actionTypes[action] || (formData && formData.length > 1 ? 'Entries' : 'Entry')
+  const actionType = actionTypes[action] || (formData && formData.length > 1 ? 'Entries' : 'Entry');
   const btnVariant = ['delete', 'reset', 'confirm'].includes(action) ? 'destructive' : 'default';
   const username = useUser().user?.username;
-  const triggerText = capAndSplit(action.split('')) + (counter ? ` ( ${counter} )` : '')
+  const triggerText = capAndSplit(action.split('')) + (counter ? ` ( ${counter} )` : '');
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {extOpenState ? [] :
@@ -134,7 +134,7 @@ export default function CustomDialog({
         <ViewErrors errors={errors} name={`${action}-Errors`} />
         <form className='grid gap-4'
           ref={formRef}
-          onSubmit={(e) => submitFunc(e, state)}
+          onSubmit={(e) => submitFunc && submitFunc(e, state)}
         >
           {
             {
@@ -150,22 +150,29 @@ export default function CustomDialog({
                 ))}
               </div>,
               share: <>
-                {formData?.[entryOffset]?.sharedWith.map(username => {
-                  return <div
-                    key={`${formData?.[entryOffset]?.owner}-${formData?.[entryOffset]?.service}-${username}`}
-                    className='flex justify-center items-center gap-4 w-4/5 mx-auto'
-                  >
-                    <p className='w-full text-center'>{username}</p>
-                    <Button type='button'
-                      variant='destructive'
-                      value={username}
-                      onClick={(e) => {
-                        if (deleteFunc) deleteFunc(e, state)
-                      }}>
-                      <Trash2 className='w-4 h-4' />
-                    </Button>
-                  </div>
-                })}
+                <div className='max-h-[40vh] overflow-y-auto flex flex-col gap-4'>
+                  {formData?.[entryOffset]?.sharedWith
+                    .map(username => {
+                      return <div
+                        key={`${formData?.[entryOffset]?.owner}-${formData?.[entryOffset]?.service}-${username}`}
+                        className='flex justify-center items-center gap-4 w-4/5 mx-auto'
+                      >
+                        <p className='w-full text-center'>{username}</p>
+                        <Button type='button'
+                          variant='destructive'
+                          value={username}
+                          onClick={(e) => {
+                            if (deleteFunc) deleteFunc(e, state)
+                          }}>
+                          <Trash2 className='w-4 h-4' />
+                        </Button>
+                      </div>
+                    })}
+                </div>
+                <DetailForm
+                  entry={formData?.[entryOffset]}
+                  keys={['service', 'owner']}
+                />
                 <ShareForm entry={formData?.[entryOffset]} />
               </>,
               pending: <>
@@ -174,7 +181,10 @@ export default function CustomDialog({
               </>,
               reset: <PasswordForm confirmMatch={confirmMatch} confirmOld match />,
               confirm: undefined,
-              details: formData?.[entryOffset] ? <DetailForm entry={formData?.[entryOffset]}/> : [],
+              details: <DetailForm
+                entry={formData?.[entryOffset]}
+                keys={['owner', 'service', 'userId', 'password', 'date', 'sharedWith']}
+              />
             }[action]
           }
           <DialogFooter>
@@ -212,14 +222,16 @@ export default function CustomDialog({
                 onClick={(e) => extraBtns[btnKey].onClick(e, state)}
               >{btnKey}</Button>
             })}
-            <Button type='submit' variant={btnVariant}>
-              {capAndSplit((submitText || action).split(''))}
-            </Button> 
+            {!submitFunc ? [] : 
+              <Button type='submit' variant={btnVariant}>
+                {capAndSplit((submitText || action).split(''))}
+              </Button> 
+            }
           </DialogFooter>
         </form>
         {!confirmFunc ? [] :
           <CustomDialog 
-            description='This action cannot be done, please be careful'
+            description='This action cannot be undone, please be careful'
             action='confirm'
             submitText="Yes I'm sure"
             submitFunc={(e) => confirmFunc(e, state)}

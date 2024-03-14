@@ -8,12 +8,12 @@ import DecryptVault from '@/components/decryptVault';
 import MyTable from '@/components/table/myTable';
 import UserSettings from '@/components/subcomponents/userSettings';
 import Loading from '@/components/subcomponents/loading';
-import { encrypt, getRandBase64 } from '@/lib/security';
-import { Actions, Entry, UserInfo } from '@/types';
-import { actionDialog, actionErrors, vaultActions } from '@/lib/vaultActions';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/components/ui/use-toast';
+import { encrypt, getRandBase64 } from '@/lib/security';
+import { actionDialog, actionErrors, vaultActions } from '@/lib/vaultActions';
 import easyFetch from '@/lib/easyFetch';
+import { Actions, Entry, UserInfo } from '@/types';
 
 // Apparently salt and iv can be stored in the db next to the encrypted data
 //   - Salt should always be unique (we cant guarantee every password is unique)
@@ -22,27 +22,18 @@ import easyFetch from '@/lib/easyFetch';
 // More Info: https://security.stackexchange.com/questions/177990/what-is-the-best-practice-to-store-private-key-salt-and-initialization-vector-i
 //
 // Optional:
-// Edit lib/security, all functions should take salt and iv as base64 strings
-//  - see if we can use base64 everywhere, especially for the plaintext and password
-// Add a 'syncing' indicator (like a red/green line)
-//  - when vault changes display 'out of sync' indicator (red)
-//  - when server returns set status based on return res status (if status === 200 then vault is in sync)
-// Add index.tsx to src/components?
-//  - That way we can import multiple components in one line
+// Add auto lock timer?  After 5 or 10 mins, set fullKey to undefined
+//  - This will effectively re-lock the vault until user enters their password again
 //
 // What to do next:
-// UserInfo and Share types are essentially the same
-//  - Think about merging these types into EncryptedData or something like that
-// Do we want to use Actions type to replace action type in CustomDialog?
-//  - The types do not entirely overlap, which could be problematic
-// Remove all console.log statements
-// Style details dialog
 // Toaster should pop-up 'copied' when something is copied to the clipboard
+//  - Copied dialog doesn't pop up when we generate a password in a CustomDialog component
 
 export default function Home() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
   const [fullKey, setFullKey] = useState<CryptoKey>();
   const [vault, setVault]= useState<Entry[]>();
+  const [isSynced, setIsSynced] = useState<boolean>();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,21 +47,32 @@ export default function Home() {
           salt: userInfo.salt || getRandBase64('salt'),
         })
       } else if (vault && fullKey) {
-        console.log('Pushing vault to DB')
+        setIsSynced(false);
         const newIv = getRandBase64('iv')
         const newUserInfo = {
           ...userInfo,
           iv: newIv,
           vault: await encrypt(JSON.stringify(vault), fullKey, newIv),
         }
-        easyFetch('/api/vault', 'POST', newUserInfo)
         setUserInfo(newUserInfo);
+        const updateRes = await easyFetch('/api/vault', 'POST', newUserInfo, true);
+        if (updateRes?.ok) {
+          setIsSynced(true);
+          setTimeout(() => setIsSynced(undefined), 1000);
+        }
       } 
     })();
   }, [vault, fullKey])
 
-  function editVault(action: Actions, toChange: Entry[]): string | undefined {
+  function editVault(action: Actions | 'copied', toChange: Entry[]): string | undefined {
     if (!vault || !userInfo) return 'Error, no vault or userInfo found'
+    if (action === 'copied') {
+      toast({
+        title: 'Copied to clipboard',
+        duration: 1000,
+      })
+      return
+    }
 
     // Check for errors before editing vault
     const errorMsg = Object.keys(actionErrors[action]).find(errMsg => {
@@ -82,7 +84,7 @@ export default function Home() {
 
     toast({
       title: actionDialog[action](toChange.length),
-      duration: 1500,
+      duration: 1000,
     })
 
     setVault(
@@ -105,6 +107,7 @@ export default function Home() {
           <ToggleTheme />
         </div>
       </div>
+      <div className={`animate-pulse transition-colors duration-1000 bg-gradient-to-b h-1 w-full ${isSynced === undefined ? '' : isSynced ? 'from-green-500' : 'from-red-500'}`}></div>
       {!userInfo ?  <Loading />
         : !fullKey ? <DecryptVault {...{ userInfo, setFullKey, vault, setVault }} />
           : vault ? <MyTable data={vault.toReversed()} {...{ editVault, userInfo }} />

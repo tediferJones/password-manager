@@ -32,10 +32,16 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' onEscapeKeyDown={() => setIsOpen(false)}>
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.getValue('userId'))}>
+        <DropdownMenuItem onClick={() => {
+          navigator.clipboard.writeText(row.getValue('userId'))
+          editVault('copied', [])
+        }}>
           Copy User Id 
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.getValue('password'))}>
+        <DropdownMenuItem onClick={() => {
+          navigator.clipboard.writeText(row.getValue('password'))
+          editVault('copied', [])
+        }}>
           Copy Password
         </DropdownMenuItem>
 
@@ -77,7 +83,6 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         extOpenState={[editIsOpen, setEditIsOpen]}
         submitFunc={(e, state) => {
           e.preventDefault();
-          console.log('submitted', state)
           state.setErrors([]);
           const error = editVault('update', [{
             ...row.original,
@@ -136,10 +141,6 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         action='details'
         formData={[row.original]}
         extOpenState={[detailIsOpen, setDetailIsOpen]}
-        submitFunc={(e, state) => {
-          e.preventDefault();
-          state.setIsOpen(false);
-        }}
       />
     </DropdownMenu>
   )

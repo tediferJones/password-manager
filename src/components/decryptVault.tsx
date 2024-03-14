@@ -60,21 +60,22 @@ export default function DecryptVault({
         }
         <form ref={form} className='grid gap-4 py-4'
           onSubmit={async (e) => {
-          e.preventDefault()
+            e.preventDefault();
+            setErrorMsgs([]);
 
-          if (!userInfo.vault && !confirmMatch()) return console.log('Passwords do not match')
+            if (!userInfo.vault && !confirmMatch()) return setErrorMsgs(['Passwords do not match'])
 
-          const fullKey = await getFullKey(e.currentTarget.password.value, userInfo.salt);
-          let decryptedVault;
-          try {
-            decryptedVault = userInfo.vault ? JSON.parse(await decrypt(userInfo.vault, fullKey, userInfo.iv)) : [];
-          } catch {
-            setErrorMsgs(['Password is not correct'])
-            return;
-          }
-          setFullKey(fullKey)
-          setVault(decryptedVault)
-        }}>
+            const fullKey = await getFullKey(e.currentTarget.password.value, userInfo.salt);
+            let decryptedVault;
+            try {
+              decryptedVault = userInfo.vault ? JSON.parse(await decrypt(userInfo.vault, fullKey, userInfo.iv)) : [];
+            } catch {
+              setErrorMsgs(['Password is not correct'])
+              return;
+            }
+            setFullKey(fullKey)
+            setVault(decryptedVault)
+          }}>
           <PasswordForm confirmMatch={confirmMatch} match={match} />
           <AlertDialogFooter>
             {!match ? [] : 

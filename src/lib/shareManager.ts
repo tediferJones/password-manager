@@ -12,7 +12,6 @@ export async function deleteShares(entries: Entry[]) {
 export async function uploadShares(entry: Entry, users: string[]) {
   // Add share record to DB
   users.forEach(async username => {
-    console.log('send share to', username, entry)
     const salt = getRandBase64('salt');
     const iv = getRandBase64('iv');
     easyFetch('/api/share', 'POST', {
@@ -39,7 +38,6 @@ export function shareHandler(action: shareActions, vault: Entry[], entries: Entr
 
   const sendTo: { [key in shareActions]: (entry: Entry) => string[] } = {
     remove: (entry) => {
-      console.log('is owner:', entry.owner === userInfo.username)
       return entry.owner === userInfo.username ? entry.sharedWith
         : entry.sharedWith
         .filter(username => username !== userInfo.username)
