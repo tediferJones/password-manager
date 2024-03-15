@@ -41,7 +41,7 @@ export default function getColumnDefs(editVault: EditVaultFunction) {
     {
       accessorKey: 'password',
       header: ({ column }) => <ColumnHeader column={column} />,
-      cell: ({ row }) => <ShowHidePwd pwd={row.getValue('password')} />,
+      cell: ({ row }) => <ShowHidePwd pwd={row.getValue('password')} truncate />,
     },
     {
       accessorKey: 'owner',

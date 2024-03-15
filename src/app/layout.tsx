@@ -19,6 +19,10 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang='en' suppressHydrationWarning>
+        <head>
+          <meta name='theme-color' media='(prefers-color-scheme: light)' content='white' />
+          <meta name='theme-color' media='(prefers-color-scheme: dark)' content='black' />
+        </head>
         <body className={inter.className}>
           <ThemeProvider
             attribute='class'

@@ -4,6 +4,7 @@ import { Table } from '@tanstack/react-table';
 import GeneratePassword from '@/components/subcomponents/generatePassword';
 import Searchbar from '@/components/table/searchbar';
 import CustomDialog from '@/components/subcomponents/customDialog';
+import { useToast } from '@/components/ui/use-toast';
 import { EditVaultFunction, Entry, Share } from '@/types';
 import { decrypt, getFullKey } from '@/lib/security';
 import { deleteShares, uploadShares } from '@/lib/shareManager';
@@ -20,6 +21,7 @@ export default function TableOptions({
   if (!username) throw Error('you are not logged in');
 
   const [pendingShares, setPendingShares] = useState<Entry[]>([]);
+  const { toast } = useToast();
 
   async function getShares() {
     if (!username) throw Error('you are not logged in');
@@ -57,7 +59,7 @@ export default function TableOptions({
     getShares();
 
     let delay: NodeJS.Timeout | undefined
-    delay = setInterval(async () => await getShares(), 60000)
+    delay = setInterval(() => getShares(), 60000)
     return () => clearInterval(delay)
   }, []);
 
@@ -67,7 +69,13 @@ export default function TableOptions({
         {table.getFilteredSelectedRowModel().rows.length} of{' '}
         {table.getFilteredRowModel().rows.length} selected
       </div>
-      <GeneratePassword buttonText='Copy' func={() => editVault('copied', [])}/>
+      <GeneratePassword
+        buttonText='Copy'
+        func={() => toast({
+          title: 'Copied to clipboard',
+          duration: 1000
+        })}
+      />
       <CustomDialog 
         action='delete'
         description='Are you sure you want to delete these entries?'

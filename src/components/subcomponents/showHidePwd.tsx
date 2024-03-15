@@ -1,11 +1,11 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 
-export default function ShowHidePwd({ pwd }: { pwd: string }) {
+export default function ShowHidePwd({ pwd, truncate }: { pwd: string, truncate?: boolean }) {
   const [showPwd, setShowPwd] = useState(false);
   return (
     <span className='flex gap-2'>
-      <span className='w-full truncate'
+      <span className={`w-full ${truncate ? 'truncate' : ''}`}
         onMouseEnter={() => setShowPwd(true)}
         onMouseLeave={() => setShowPwd(false)}
       >

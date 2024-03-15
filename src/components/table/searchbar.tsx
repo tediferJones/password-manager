@@ -66,7 +66,7 @@ export default function Searchbar({ table }: { table: Table<Entry> }) {
               return (
                 <DropdownMenuCheckboxItem
                   key={column.id}
-                  className='capitalize'
+                  className={`capitalize ${column.id === 'userId' ? 'hidden sm:flex' : column.id === 'password' ? 'hidden md:flex' : ''}`}
                   checked={column.getIsVisible()}
                   onCheckedChange={(value) =>
                     column.toggleVisibility(!!value)

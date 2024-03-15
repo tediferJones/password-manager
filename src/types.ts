@@ -41,7 +41,7 @@ type ActionErrors = {
   }
 }
 
-type EditVaultFunction = (action: Actions | 'copied', entires: Entry[]) => string | undefined;
+type EditVaultFunction = (action: Actions, entires: Entry[]) => string | undefined;
 
 interface CustomDialogState {
   isOpen: boolean,

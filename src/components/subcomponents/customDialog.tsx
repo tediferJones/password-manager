@@ -144,13 +144,13 @@ export default function CustomDialog({
               />,
               delete: <div className='max-h-[40vh] overflow-y-auto flex flex-col items-center'>
                 {formData?.map(entry => (
-                  <div className='text-center'
+                  <div className='text-center break-all py-2'
                     key={`${entry.owner}-${entry.service}`}
                   >{entry.service}</div>
                 ))}
               </div>,
               share: <>
-                <div className='max-h-[40vh] overflow-y-auto flex flex-col gap-4'>
+                <div className='max-h-[20vh] sm:max-h-[40vh] overflow-y-auto flex flex-col gap-4'>
                   {formData?.[entryOffset]?.sharedWith
                     .map(username => {
                       return <div
@@ -187,7 +187,7 @@ export default function CustomDialog({
               />
             }[action]
           }
-          <DialogFooter>
+          <DialogFooter className='gap-2 sm:gap-0'>
             <DialogClose asChild>
               <Button variant='secondary' type='button'>Close</Button>
             </DialogClose>

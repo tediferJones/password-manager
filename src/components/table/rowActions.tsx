@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import CustomDialog from '@/components/subcomponents/customDialog';
 import { EditVaultFunction, Entry } from '@/types';
 import { useUser } from '@clerk/nextjs';
+import { useToast } from '../ui/use-toast';
 
 export default function RowActions({ row, editVault }: { row: Row<Entry>, editVault: EditVaultFunction }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +22,7 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
   const [shareIsOpen, setShareIsOpen] = useState(false);
   const [deleteIsOpen, setDeleteIsOpen] = useState(false);
   const [detailIsOpen, setDetailIsOpen] = useState(false);
+  const { toast } = useToast();
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -34,13 +36,19 @@ export default function RowActions({ row, editVault }: { row: Row<Entry>, editVa
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => {
           navigator.clipboard.writeText(row.getValue('userId'))
-          editVault('copied', [])
+          toast({
+            title: 'Copied to clipboard',
+            duration: 1000,
+          })
         }}>
           Copy User Id 
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => {
           navigator.clipboard.writeText(row.getValue('password'))
-          editVault('copied', [])
+          toast({
+            title: 'Copied to clipboard',
+            duration: 1000,
+          })
         }}>
           Copy Password
         </DropdownMenuItem>
