@@ -1,7 +1,7 @@
-import { Entry } from "@/types";
-import { Column } from "@tanstack/react-table";
-import { ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
-import capAndSplit from "@/lib/capAndSplit";
+import { Entry } from '@/types';
+import { Column } from '@tanstack/react-table';
+import { ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
+import capAndSplit from '@/lib/capAndSplit';
 
 export default function ColumnHeader({ column }: { column: Column<Entry, unknown> }) {
   const sortDir= column.getIsSorted();
@@ -15,11 +15,12 @@ export default function ColumnHeader({ column }: { column: Column<Entry, unknown
           </button>
         }
         <button
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          aria-label='sort column'
         >
-          {sortDir === 'asc' ? <ArrowUp  className="h-4 w-4 cursor-pointer"/>
-            : sortDir === 'desc' ? <ArrowDown  className="h-4 w-4 cursor-pointer"/>
-              : <ArrowUpDown  className="h-4 w-4 cursor-pointer"/>
+          {sortDir === 'asc' ? <ArrowUp  className='h-4 w-4 cursor-pointer'/>
+            : sortDir === 'desc' ? <ArrowDown  className='h-4 w-4 cursor-pointer'/>
+              : <ArrowUpDown  className='h-4 w-4 cursor-pointer'/>
           }
         </button>
       </div>

@@ -22,10 +22,6 @@ export default function Home() {
   const [isSynced, setIsSynced] = useState<boolean>();
   const { toast } = useToast();
 
-  // Fix icons in app/manifest.ts
-  // Clean-up public folder
-  // Get full icon pack, put all in public folder
-
   useEffect(() => {
     (async () => {
       if (!userInfo) {

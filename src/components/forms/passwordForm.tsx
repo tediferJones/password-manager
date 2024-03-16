@@ -33,7 +33,7 @@ export default function PasswordForm({
               required
               type={showOldPwd ? 'text' : 'password'}
             />
-            <button type='button' onClick={() => setShowOldPwd(!showOldPwd)}>
+            <button type='button' onClick={() => setShowOldPwd(!showOldPwd)} aria-label='toggle old password visibility'>
               {showOldPwd ? <EyeOff className='h-4 w-4 mx-4' /> : 
                 <Eye className='h-4 w-4 mx-4'/>
               }
@@ -57,7 +57,7 @@ export default function PasswordForm({
               if (match) setPasswordsMatch(confirmMatch());
             }}
           />
-          <button type='button' onClick={() => setShowPwd(!showPwd)}>
+          <button type='button' onClick={() => setShowPwd(!showPwd)} aria-label='toggle new password visibility'>
             {showPwd ? <EyeOff className='h-4 w-4 mx-4' /> : 
               <Eye className='h-4 w-4 mx-4'/>
             }
@@ -65,7 +65,7 @@ export default function PasswordForm({
         </div>
       </div>
       {!match ? [] :
-        <div className='grid grid-cols-4 items-center gap-4'>
+        <div className='grid grid-cols-4 items-center gap-4' aria-label='toggle confirm password visibility'>
           <Label htmlFor='confirm' className='text-center'>
             Confirm
           </Label>

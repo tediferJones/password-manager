@@ -12,12 +12,11 @@ An encrypted password manager that allows you to securely store, generate and sh
 ## How it works
 This app uses 
 [PBKDF2](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#pbkdf2_2)
-to implement password based encryption. You're vault is always sent and received
+to implement password based encryption. Your vault is always sent and received
 in an encrypted state, and your decryption password never leaves your machine.
-This way your passwords are always secure. In addition, every time your vault changes
-it will be re-encrypted and uploaded to the database with a new IV. The downside
-of this strategy is that if a user forgets their decryption password there is no
-way to restore the vault.
+In addition, every time your vault changes it will be re-encrypted and uploaded
+to the database with a new IV. The downside of this strategy is that if a user
+forgets their decryption password there is no way to restore their vault.
 
 If a user chooses to share an entry, a copy of this entry will be encrypted with
 the recipients username and sent to the share table. The next time the recipient
@@ -32,5 +31,5 @@ their vault, then they will be removed from the share list and an automatic upda
 will be triggered for all other users it has been shared with, including the owner.
 If the owner deletes the entire entry, then this entry will be auto deleted from the
 vaults of every user it has been shared with. The owner also has the ability to
-remove individual users from each entry, prompting an auto delete for the user who
+remove individual users from a shared entry, prompting an auto delete for the user who
 was removed, and an auto update for all users it is still shared with.
