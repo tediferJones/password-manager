@@ -4,7 +4,6 @@ import ShowHidePwd from '@/components/subcomponents/showHidePwd';
 
 export default function DetailForm({ entry, keys }: { entry?: Entry, keys?: string[] }) {
   const prettyPrint: { [key: string]: Function } = {
-    // date: (date: Date) => new Date(date).toLocaleDateString(),
     date: (date: Date) => {
       const dateStr = new Date(date).toLocaleDateString(undefined, {
         weekday: 'long',

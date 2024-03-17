@@ -89,7 +89,7 @@ export default function Home() {
       <div className={`animate-pulse transition-colors duration-1000 bg-gradient-to-b h-1 w-full ${isSynced === undefined ? '' : isSynced ? 'from-green-500' : 'from-red-500'}`}></div>
       {!userInfo ?  <Loading />
         : !fullKey ? <DecryptVault {...{ userInfo, setFullKey, vault, setVault }} />
-          : vault ? <MyTable data={vault.toReversed()} {...{ editVault, userInfo }} />
+          : vault ? <MyTable data={vault.map((_, i, arr) => arr[arr.length - 1 - i])} {...{ editVault, userInfo }} />
             : <Button className='p-8 text-xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2'
               variant='outline'
               onClick={() => window.location.reload()}
