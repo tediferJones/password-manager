@@ -1,9 +1,9 @@
-export default function capAndSplit(str: string[], i = 0) {
-  // Format camel case strings into plain english
-  // i.e. 'myCamelCaseString' => 'My Camel Case String'
-
-  if (!str[i]) return str.join('');
-  if (i === 0) return capAndSplit(str.with(0, str[0].toUpperCase()), i + 1)
-  if ('A' < str[i] && str[i] < 'Z') return capAndSplit(str.toSpliced(i, 0, ' '), i + 2)
-  return capAndSplit(str, i + 1)
+export default function capAndSplit(str: string[]) {
+  // This function should take arg as a string, but I dont feel like updating all the
+  // insert spaces into camelCase strings, i.e. 'myNameIsBob' = 'My Name Is Bob'
+  return str.reduce((str, char, i) => {
+    if (i === 0) return char.toUpperCase();
+    if ('A' <= char && char <= 'Z') return `${str} ${char}`;
+    return str + char;
+  }, '')
 }
